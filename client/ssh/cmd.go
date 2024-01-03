@@ -19,6 +19,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/cockroachdb/errors"
 	"golang.org/x/crypto/ssh"
@@ -70,7 +71,7 @@ func (c *Cmd) Start() error {
 }
 
 func (c *Cmd) Wait() error {
-	ech := make(chan error)
+	ech := make(chan error, 1)
 	go func() {
 		ech <- c.session.Wait()
 	}()
@@ -90,6 +91,17 @@ func (c *Cmd) Run() error {
 	return c.Wait()
 }
 
+type singleWriter struct {
+	b  bytes.Buffer
+	mu sync.Mutex
+}
+
+func (w *singleWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.b.Write(p)
+}
+
 func (c *Cmd) CombinedOutput() ([]byte, error) {
 	if c.session.Stdout != nil {
 		return nil, errors.New("exec: Stdout already set")
@@ -97,9 +109,13 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
 	if c.session.Stderr != nil {
 		return nil, errors.New("exec: Stderr already set")
 	}
-	var b bytes.Buffer
+	var b singleWriter
 	c.session.Stdout = &b
 	c.session.Stderr = &b
 	err := c.Run()
-	return b.Bytes(), err
+	return b.b.Bytes(), err
+}
+
+func (c *Cmd) Close() error {
+	return c.session.Close()
 }

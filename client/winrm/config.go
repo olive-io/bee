@@ -1,0 +1,80 @@
+// Copyright 2024 The bee Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package winrm
+
+import (
+	"fmt"
+
+	"github.com/masterzen/winrm"
+	"go.uber.org/zap"
+
+	"github.com/olive-io/bee/client"
+)
+
+const (
+	DefaultWinRMPort = 5985
+)
+
+type Config struct {
+	winrm.Endpoint
+
+	Username string
+	Password string
+
+	lg *zap.Logger
+}
+
+func NewConfig(lg *zap.Logger, host, username, password string) *Config {
+	if lg == nil {
+		lg = zap.NewExample()
+	}
+	cfg := &Config{
+		Endpoint: winrm.Endpoint{
+			Host:     host,
+			Port:     DefaultWinRMPort,
+			Insecure: true,
+			Timeout:  client.DefaultDialTimeout,
+		},
+		Username: username,
+		Password: password,
+		lg:       lg,
+	}
+	return cfg
+}
+
+func (cfg *Config) Validate() error {
+	if cfg.Host == "" {
+		return fmt.Errorf("missing host")
+	}
+	if cfg.Port == 0 {
+		cfg.Port = DefaultWinRMPort
+	}
+	if !cfg.HTTPS {
+		cfg.Insecure = true
+	}
+
+	if cfg.Username == "" {
+		return fmt.Errorf("missing username")
+	}
+	if cfg.Password == "" {
+		return fmt.Errorf("missing password")
+	}
+
+	if cfg.Timeout == 0 {
+		cfg.Timeout = client.DefaultDialTimeout
+	}
+
+	return nil
+}

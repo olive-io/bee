@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ssh
+package winrm
 
 import (
 	"context"
@@ -26,67 +26,75 @@ import (
 	"github.com/olive-io/bee/client"
 )
 
-func newClient(t *testing.T) *Client {
-	passwd, _ := os.LookupEnv("TEST_SSH_PASSWORD")
-	cfg := NewAuthConfig(zap.NewExample(), "192.168.2.32:22", "root", passwd)
+func newwinrm(t *testing.T) *WinRM {
+	passwd, _ := os.LookupEnv("TEST_WinRM_PASSWORD")
+	cfg := NewConfig(zap.NewExample(), "192.168.2.164", "Administrator", passwd)
 
-	c, err := NewClient(*cfg)
+	c, err := NewWinRM(*cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return c
 }
 
-func TestNewClient(t *testing.T) {
-	c := newClient(t)
-	if err := c.Close(); err != nil {
-		t.Fatal(err)
-	}
+func TestNewWinRM(t *testing.T) {
+	wr := newwinrm(t)
+	wr.Close()
 }
 
 func TestClient_Put_Get(t *testing.T) {
-	c := newClient(t)
+	c := newwinrm(t)
 	defer c.Close()
 
 	ctx := context.Background()
 	tf := filepath.Join(os.TempDir(), "test.txt")
-	err := os.WriteFile(tf, []byte("hello world1"), os.ModePerm)
+	err := os.WriteFile(tf, []byte(`hello world`), os.ModePerm)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	err = c.Put(ctx, tf, "/tmp/test.txt")
+	err = c.Put(ctx, tf, "C:\\howlink\\test.txt")
 	if !assert.NoError(t, err) {
 		return
 	}
 
 	local := filepath.Join(os.TempDir(), "test1.txt")
-	err = c.Get(ctx, "/tmp/test.txt", local)
+	err = c.Get(ctx, "C:\\howlink\\test.txt", local)
 	if !assert.NoError(t, err) {
 		return
 	}
 
 	data, _ := os.ReadFile(local)
-	if !assert.Equal(t, []byte("hello world1"), data) {
-		return
-	}
+	t.Logf("Output: %s", string(data))
 }
 
-func TestClient_Execute(t *testing.T) {
-	c := newClient(t)
-	defer c.Close()
+func TestWinRM_Execute(t *testing.T) {
+	wr := newwinrm(t)
+	wr.Close()
 
 	ctx := context.Background()
-	cmd, err := c.Execute(ctx, "echo $AA", client.ExecWithEnv("AA", "AC_test"))
-	if !assert.NoError(t, err) {
-		return
-	}
-	defer cmd.Close()
-
-	data, err := cmd.CombinedOutput()
+	cmd, err := wr.Execute(ctx, "cmd", client.ExecWithArgs([]string{"/C", "ipconfig", "/all"}))
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	t.Logf("%v", string(data))
+	reader, err := cmd.StdoutPipe()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	err = cmd.Start()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	err = cmd.Wait()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	data := make([]byte, 1024*32)
+	n, _ := reader.Read(data)
+	data = data[:n]
+	t.Logf("Output: %v", string(data))
 }

@@ -17,14 +17,11 @@ package ssh
 import (
 	"fmt"
 	"net"
-	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
-)
 
-const (
-	DefaultTimeout = time.Second * 15
+	"github.com/olive-io/bee/client"
 )
 
 type Config struct {
@@ -32,7 +29,7 @@ type Config struct {
 	Addr    string
 
 	ClientConfig *ssh.ClientConfig
-	Logger       *zap.Logger
+	lg           *zap.Logger
 }
 
 func NewAuthConfig(lg *zap.Logger, host, user, password string) *Config {
@@ -45,17 +42,17 @@ func NewAuthConfig(lg *zap.Logger, host, user, password string) *Config {
 			HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 				return nil
 			},
-			Timeout: DefaultTimeout,
+			Timeout: client.DefaultDialTimeout,
 		},
-		Logger: lg,
+		lg: lg,
 	}
 
 	return cfg
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.Logger == nil {
-		cfg.Logger = zap.NewExample()
+	if cfg.lg == nil {
+		cfg.lg = zap.NewExample()
 	}
 
 	if cfg.ClientConfig == nil {
@@ -63,7 +60,7 @@ func (cfg *Config) Validate() error {
 	}
 
 	if cfg.ClientConfig.Timeout == 0 {
-		cfg.ClientConfig.Timeout = DefaultTimeout
+		cfg.ClientConfig.Timeout = client.DefaultDialTimeout
 	}
 
 	return nil

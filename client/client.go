@@ -17,10 +17,12 @@ package client
 import (
 	"context"
 	"io"
+	"time"
 )
 
 const (
-	DefaultCacheSize = 1024 * 32
+	DefaultCacheSize   = 1024 * 32
+	DefaultDialTimeout = time.Second * 15
 )
 
 type IClient interface {
@@ -42,6 +44,7 @@ type ICmd interface {
 	Wait() error
 	Run() error
 	CombinedOutput() ([]byte, error)
+	Close() error
 }
 
 type GetOptions struct {
