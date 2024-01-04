@@ -1,0 +1,83 @@
+// Copyright 2024 The bee Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package rpc;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/olive-io/bee/api/rpc;rpc";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_getters_all) = false;
+
+message FileStat {
+  string name = 1;
+  bool isDir = 2;
+  uint32 perm = 3;
+  int64 size = 4;
+}
+
+message Chunk {
+  bytes data = 1;
+  int64 length = 2;
+}
+
+service RemoteRPC {
+  rpc Stat(StatRequest) returns (StatResponse);
+  rpc Get(GetRequest) returns (stream GetResponse);
+  rpc Put(stream PutRequest) returns (PutResponse);
+  rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse);
+}
+
+message StatRequest {
+  string name = 1;
+}
+
+message StatResponse {
+  FileStat stat = 1;
+}
+
+message GetRequest {
+  string name = 1;
+  int64 cacheSize = 2;
+}
+
+message GetResponse {
+  FileStat stat = 1;
+  Chunk chunk = 2;
+}
+
+message PutRequest {
+  string name = 1;
+  FileStat stat = 2;
+  Chunk chunk = 3;
+}
+
+message PutResponse {
+}
+
+message ExecuteRequest {
+  string name = 1;
+  repeated string args = 2;
+  map<string, string> envs = 3;
+  bytes data = 4;
+}
+
+message ExecuteResponse {
+  bytes stdout = 1;
+  bytes stderr = 2;
+}

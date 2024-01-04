@@ -4,13 +4,14 @@ go 1.21.1
 
 require (
 	github.com/cockroachdb/errors v1.11.1
-	github.com/google/uuid v1.3.0
+	github.com/gogo/protobuf v1.3.2
+	github.com/google/uuid v1.5.0
 	github.com/masterzen/winrm v0.0.0-20231227165926-e811dad5ac77
 	github.com/pkg/sftp v1.13.6
 	github.com/stretchr/testify v1.8.4
-	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.17.0
+	google.golang.org/grpc v1.60.1
 )
 
 require (
@@ -24,7 +25,7 @@ require (
 	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
@@ -41,8 +42,11 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/tidwall/transform v0.0.0-20201103190739-32f242e2dbde // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
