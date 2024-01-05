@@ -1,0 +1,31 @@
+name: "ping"
+long: "a long text for description"
+script: "ping.tengo"
+authors:
+  - John, Jonh@gmail.com
+  -
+examples: |
+
+params:
+  - name: ip
+    type: string
+    short: I
+    desc: "target ip address"
+    example: "127.0.0.1"
+
+returns:
+  - name: ""
+    type: ""
+    example: ""
+
+commands:
+  - name: "sub-command"
+    long: "a long text for description"
+    script: "sub.tengo"
+    authors:
+      - John, Jonh@gmail.com
+      -
+    examples: |
+
+    params:
+    returns:
