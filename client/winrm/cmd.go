@@ -25,6 +25,8 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/masterzen/winrm"
+
+	"github.com/olive-io/bee/client"
 )
 
 var (
@@ -45,6 +47,9 @@ type Cmd struct {
 	stdout io.WriteCloser
 	stderr io.WriteCloser
 
+	childIOFiles  []io.Closer
+	parentIOPipes []io.Closer
+
 	wg sync.WaitGroup
 }
 
@@ -60,6 +65,8 @@ func (c *Cmd) StdinPipe() (io.WriteCloser, error) {
 		return nil, err
 	}
 	c.stdin = pr
+	//c.childIOFiles = append(c.childIOFiles, pr)
+	//c.parentIOPipes = append(c.parentIOPipes, pw)
 	return pw, nil
 }
 
@@ -102,7 +109,7 @@ func (c *Cmd) Start() error {
 	shell := fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
 	cc, err := c.s.ExecuteWithContext(ctx, shell)
 	if err != nil {
-		return err
+		return errors.Wrapf(client.ErrRequest, err.Error())
 	}
 
 	var b singleWriter
@@ -199,4 +206,10 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
 
 func (c *Cmd) Close() error {
 	return c.s.Close()
+}
+
+func closeDescriptors(closers []io.Closer) {
+	for _, fd := range closers {
+		fd.Close()
+	}
 }

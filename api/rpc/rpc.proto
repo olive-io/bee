@@ -29,6 +29,7 @@ message FileStat {
   bool isDir = 2;
   uint32 perm = 3;
   int64 size = 4;
+  int64 modTime = 5;
 }
 
 message Chunk {

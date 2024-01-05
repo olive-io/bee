@@ -13,3 +13,7 @@
 // limitations under the License.
 
 package modules
+
+type IModule interface {
+	Name() string
+}

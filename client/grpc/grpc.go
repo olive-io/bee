@@ -35,8 +35,9 @@ import (
 )
 
 type Client struct {
-	cfg Config
-	cc  pb.RemoteRPCClient
+	cfg  Config
+	cc   pb.RemoteRPCClient
+	conn *grpc.ClientConn
 }
 
 func NewClient(cfg Config) (*Client, error) {
@@ -50,14 +51,14 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	conn := cfg.conn
-	if conn != nil {
+	if conn == nil {
 		ctx := context.Background()
 		conn, err = c.dial(ctx)
 		if err != nil {
 			return nil, err
 		}
-		cfg.conn = conn
 	}
+	c.conn = conn
 	c.cc = pb.NewRemoteRPCClient(conn)
 
 	return c, nil
@@ -130,67 +131,81 @@ func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOpt
 	}
 
 	var fw *os.File
-	fn := options.Trace
+	defer func() {
+		if fw != nil {
+			_ = fw.Close()
+			fw = nil
+		}
+	}()
 	written := int64(0)
 	sub := int64(0)
 	last := time.Now()
+	fn := options.Trace
 	for {
 		rsp, e1 := rc.Recv()
 		if e1 != nil && e1 != io.EOF {
 			return rpctype.ParseGRPCErr(err)
 		}
 
-		if rs := rsp.Stat; rs != nil {
-			name := rs.Name
-			entry := filepath.Join(dst, strings.TrimPrefix(name, src))
-			if rs.IsDir {
-				if err = os.Mkdir(entry, fs.FileMode(rs.Perm)); err != nil {
-					return err
-				}
-			} else {
-				if fw == nil || fw.Name() != entry {
-					if fw != nil {
-						_ = fw.Close()
-					}
-					fw, err = os.Create(entry)
-					if err != nil {
-						return err
-					}
-				}
-				chunk := rsp.Chunk
-				if chunk == nil {
-					return errors.Wrapf(client.ErrInvalidWrite, "no data")
-				}
-
-				trace := &client.IOTrace{
-					Name:  path.Base(fw.Name()),
-					Src:   name,
-					Dst:   fw.Name(),
-					Total: rs.Size,
-				}
-
-				var n int
-				n, err = fw.Write(chunk.Data[:chunk.Length])
-				if err != nil {
-					return err
-				}
-				written += int64(n)
-				if fn != nil {
-					now := time.Now()
-					trace.Chunk = written
-					trace.Speed = int64(float64(written-sub) / (now.Sub(last).Seconds()))
-					last = now
-					sub = written
-					fn(trace)
-				}
-			}
+		if err = c.save(rsp, fw, dst, &written, &sub, &last, fn); err != nil {
+			return rpctype.ToGRPCErr(err)
 		}
 
-		if err == io.EOF {
+		if e1 == io.EOF {
 			break
 		}
 	}
 
+	return nil
+}
+
+func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, written, sub *int64, last *time.Time, fn client.IOTraceFn) error {
+	if rsp == nil || rsp.Stat != nil {
+		return nil
+	}
+
+	var err error
+	rs := rsp.Stat
+	name := rs.Name
+	if rs.IsDir {
+		//entry := filepath.Join(dst, strings.TrimPrefix(name, src))
+		return os.Mkdir(dst, fs.FileMode(rs.Perm))
+	}
+	if fw == nil || fw.Name() != dst {
+		if fw != nil {
+			_ = fw.Close()
+		}
+		fw, err = os.Create(dst)
+		if err != nil {
+			return err
+		}
+	}
+	chunk := rsp.Chunk
+	if chunk == nil {
+		return nil
+	}
+
+	trace := &client.IOTrace{
+		Name:  path.Base(fw.Name()),
+		Src:   name,
+		Dst:   fw.Name(),
+		Total: rs.Size,
+	}
+
+	var n int
+	n, err = fw.Write(chunk.Data[:chunk.Length])
+	if err != nil {
+		return err
+	}
+	*written += int64(n)
+	if fn != nil {
+		now := time.Now()
+		trace.Chunk = *written
+		trace.Speed = int64(float64(*written-*sub) / (now.Sub(*last).Seconds()))
+		*last = now
+		sub = written
+		fn(trace)
+	}
 	return nil
 }
 
@@ -324,10 +339,30 @@ func (c *Client) put(ctx context.Context, stream pb.RemoteRPC_PutClient, src, ds
 }
 
 func (c *Client) Execute(ctx context.Context, shell string, opts ...client.ExecOption) (client.ICmd, error) {
-	//TODO implement me
-	panic("implement me")
+	options := client.NewExecOptions()
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
+	cmd := &Cmd{
+		lg:       c.cfg.lg,
+		ctx:      ctx,
+		cancel:   cancel,
+		options:  c.callOptions(),
+		cc:       c.cc,
+		name:     shell,
+		args:     options.Args,
+		envs:     options.Environments,
+		stopping: make(chan struct{}),
+		done:     make(chan struct{}),
+		stop:     make(chan struct{}),
+	}
+
+	return cmd, nil
 }
 
 func (c *Client) Close() error {
-	return c.cfg.conn.Close()
+	return c.conn.Close()
 }

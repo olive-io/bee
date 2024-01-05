@@ -16,6 +16,7 @@ package winrm
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -140,11 +141,13 @@ func (wr *WinRM) Execute(ctx context.Context, shell string, opts ...client.ExecO
 	}
 
 	cmd := &Cmd{
-		ctx:  ctx,
-		name: shell,
-		args: options.Args,
-		envs: options.Environments,
-		s:    bash,
+		ctx:           ctx,
+		name:          shell,
+		args:          options.Args,
+		envs:          options.Environments,
+		s:             bash,
+		childIOFiles:  make([]io.Closer, 0),
+		parentIOPipes: make([]io.Closer, 0),
 	}
 	return cmd, nil
 }

@@ -15,6 +15,9 @@
 package rpctype
 
 import (
+	"io"
+	"os"
+
 	"github.com/cockroachdb/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,15 +25,24 @@ import (
 	"github.com/olive-io/bee/client"
 )
 
-func ToGRPCErr(err error) *status.Status {
+func ToGRPCErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, io.EOF) {
+		return err
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return status.New(codes.NotFound, errors.Unwrap(err).Error()).Err()
+	}
 	if errors.Is(err, client.ErrTimeout) {
-		return status.New(codes.Canceled, errors.Unwrap(err).Error())
+		return status.New(codes.Canceled, errors.Unwrap(err).Error()).Err()
 	}
 	if errors.Is(err, client.ErrNotExists) {
-		return status.New(codes.NotFound, errors.Unwrap(err).Error())
+		return status.New(codes.NotFound, errors.Unwrap(err).Error()).Err()
 	}
 
-	return status.New(codes.Unknown, err.Error())
+	return status.New(codes.Unknown, err.Error()).Err()
 }
 
 func ParseGRPCErr(err error) error {

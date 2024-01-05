@@ -27,6 +27,7 @@ import (
 
 	pb "github.com/olive-io/bee/api/rpc"
 	"github.com/olive-io/bee/api/rpctype"
+	"github.com/olive-io/bee/client"
 )
 
 var (
@@ -52,6 +53,7 @@ type Cmd struct {
 	lg *zap.Logger
 
 	ctx     context.Context
+	cancel  context.CancelFunc
 	options []grpc.CallOption
 
 	cc pb.RemoteRPCClient
@@ -62,13 +64,12 @@ type Cmd struct {
 	envs map[string]string
 
 	stdin  io.Reader
-	stdout io.WriteCloser
-	stderr io.WriteCloser
+	stdout io.Writer
+	stderr io.Writer
 
 	wgMu sync.RWMutex
 	wg   sync.WaitGroup
 
-	ech      chan error
 	stopping chan struct{}
 	done     chan struct{}
 	stop     chan struct{}
@@ -157,6 +158,14 @@ func (c *Cmd) Start() error {
 		return rpctype.ParseGRPCErr(err)
 	}
 
+	rsp, err := c.s.Recv()
+	if err != nil {
+		return rpctype.ToGRPCErr(err)
+	}
+	if len(rsp.Stderr) != 0 {
+		return errors.Wrap(client.ErrRequest, string(rsp.Stderr))
+	}
+
 	var b singleWriter
 	if c.stdout == nil {
 		c.stdout = &b
@@ -165,27 +174,18 @@ func (c *Cmd) Start() error {
 		c.stderr = &b
 	}
 
-	if c.ech == nil {
-		c.ech = make(chan error, 1)
-	}
-
 	cw := &cmdReader{s: c.s}
 
 	c.goroutine(func() {
+		defer cw.Close()
 		if c.stdin == nil {
 			return
 		}
 
-		defer cw.Close()
 		_, _ = io.Copy(cw, c.stdin)
 	})
 
 	c.goroutine(func() {
-		defer func() {
-			c.stdout.Close()
-			c.stderr.Close()
-		}()
-
 		for {
 			select {
 			case <-c.stopping:
@@ -205,12 +205,13 @@ func (c *Cmd) Start() error {
 
 			if e1 != nil {
 				if e1 != io.EOF {
-					c.stderr.Write([]byte(err.Error()))
+					c.stderr.Write([]byte(e1.Error()))
 				}
-				c.ech <- e1
-				return
+				break
 			}
 		}
+
+		close(c.stop)
 	})
 
 	return nil
@@ -232,13 +233,7 @@ func (c *Cmd) Wait() error {
 	}()
 
 	<-c.stop
-
-	var err error
-	select {
-	case err = <-c.ech:
-	default:
-	}
-	return err
+	return nil
 }
 
 func (c *Cmd) Run() error {
@@ -285,11 +280,11 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
 }
 
 func (c *Cmd) Close() error {
-	select {
-	case c.stop <- struct{}{}:
-	case <-c.done:
-		return nil
+	if c.s == nil {
+		return ErrNotStarted
 	}
-	<-c.done
+
+	c.cancel()
+	<-c.stop
 	return nil
 }

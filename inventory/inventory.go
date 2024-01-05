@@ -13,3 +13,6 @@
 // limitations under the License.
 
 package inventory
+
+type Inventory struct {
+}
