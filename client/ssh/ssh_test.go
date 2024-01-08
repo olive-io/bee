@@ -22,8 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-
-	"github.com/olive-io/bee/client"
 )
 
 func newClient(t *testing.T) *Client {
@@ -77,7 +75,7 @@ func TestClient_Execute(t *testing.T) {
 	defer c.Close()
 
 	ctx := context.Background()
-	cmd, err := c.Execute(ctx, "echo $AA", client.ExecWithEnv("AA", "AC_test"))
+	cmd, err := c.Execute(ctx, "tengo /root/ping.tengo --data=ping")
 	if !assert.NoError(t, err) {
 		return
 	}

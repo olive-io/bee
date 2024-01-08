@@ -16,7 +16,6 @@ package ssh
 
 import (
 	"fmt"
-	"net"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
@@ -37,12 +36,10 @@ func NewAuthConfig(lg *zap.Logger, host, user, password string) *Config {
 		Network: "tcp",
 		Addr:    host,
 		ClientConfig: &ssh.ClientConfig{
-			User: user,
-			Auth: []ssh.AuthMethod{ssh.Password(password)},
-			HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-				return nil
-			},
-			Timeout: client.DefaultDialTimeout,
+			User:            user,
+			Auth:            []ssh.AuthMethod{ssh.Password(password)},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Timeout:         client.DefaultDialTimeout,
 		},
 		lg: lg,
 	}
