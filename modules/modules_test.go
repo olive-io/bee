@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,8 +34,13 @@ params:
   - name: ip
     type: string
     short: I
+    default: 127.0.0.1
     desc: "target ip address"
     example: "127.0.0.1"
+  - name: count
+    type: int
+    short: C
+    default: 3
 
 returns:
   - name: "a"
@@ -80,4 +86,32 @@ func TestLoadDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, m.Name, "ping")
+}
+
+func TestModule_Execute(t *testing.T) {
+	dir, cancel := initDir(t, "foo")
+	defer cancel()
+	m, err := LoadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := m.Execute("ip=10.0.0.100")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, c.Name, "ping")
+	flags := c.Flags()
+	ip, _ := flags.GetString("ip")
+	assert.Equal(t, ip, "10.0.0.100")
+
+	c, err = m.Execute("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ip, _ = c.Flags().GetString("ip")
+	assert.Equal(t, ip, "127.0.0.1")
+
+	c.Flags().VisitAll(func(flag *pflag.Flag) {
+		t.Logf("%s=%s\n", flag.Name, flag.Value.String())
+	})
 }
