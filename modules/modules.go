@@ -109,10 +109,14 @@ func validateScript(c *Command, dir string) error {
 	if c.Script[0] != '/' {
 		c.Script = filepath.Join(dir, c.Script)
 	}
-	_, err := os.Stat(c.Script)
+	data, err := os.ReadFile(c.Script)
 	if err != nil {
 		return errors.Wrapf(err, "invalid script")
 	}
+	if c.ScriptsData == nil {
+		c.ScriptsData = map[string][]byte{}
+	}
+	c.ScriptsData[c.Script] = data
 	return nil
 }
 
@@ -122,9 +126,9 @@ type Module struct {
 	Dir string
 }
 
-func (m *Module) Execute(text string) (*Command, error) {
+func (m *Module) Execute(patten string) (*Command, error) {
 	cmd := m.Command.ParseCmd()
-	args := strings.Split(text, " ")
+	args := strings.Split(patten, " ")
 	if len(args) > 0 &&
 		!strings.Contains(args[0], ".") &&
 		strings.Contains(args[0], ".") {
@@ -148,16 +152,17 @@ func (m *Module) Execute(text string) (*Command, error) {
 }
 
 type Command struct {
-	Name     string         `yaml:"name"`
-	Long     string         `yaml:"long"`
-	Script   string         `yaml:"script"`
-	Authors  []string       `yaml:"authors"`
-	Version  string         `yaml:"version"`
-	Example  string         `yaml:"example"`
-	Params   []*Schema      `yaml:"params"`
-	Returns  []*Schema      `yaml:"returns"`
-	Commands []*Command     `yaml:"commands"`
-	cobra    *cobra.Command `yaml:"-"`
+	Name        string            `yaml:"name"`
+	Long        string            `yaml:"long"`
+	Script      string            `yaml:"script"`
+	Authors     []string          `yaml:"authors"`
+	Version     string            `yaml:"version"`
+	Example     string            `yaml:"example"`
+	Params      []*Schema         `yaml:"params"`
+	Returns     []*Schema         `yaml:"returns"`
+	Commands    []*Command        `yaml:"commands"`
+	ScriptsData map[string][]byte `yaml:"-"`
+	cobra       *cobra.Command    `yaml:"-"`
 }
 
 func (c *Command) Runnable() bool {
