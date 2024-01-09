@@ -4,15 +4,20 @@ go 1.21.1
 
 require (
 	github.com/cockroachdb/errors v1.11.1
+	github.com/d5/tengo/v2 v2.16.1
 	github.com/gogo/protobuf v1.3.2
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.5.0
 	github.com/masterzen/winrm v0.0.0-20231227165926-e811dad5ac77
+	github.com/panjf2000/ants/v2 v2.9.0
 	github.com/pkg/sftp v1.13.6
 	github.com/samber/lo v1.39.0
 	github.com/spf13/cobra v1.8.0
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.17.0
+	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	google.golang.org/grpc v1.60.1
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -45,10 +50,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tidwall/transform v0.0.0-20201103190739-32f242e2dbde // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
