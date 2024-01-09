@@ -3,7 +3,6 @@ long: "a long text for description"
 script: "ping.tengo"
 authors:
   - John, Jonh@gmail.com
-  -
 examples: |
 
 params:
@@ -11,12 +10,12 @@ params:
     type: string
     short: I
     desc: "target ip address"
+    default: "127.0.0.1"
     example: "127.0.0.1"
 
 returns:
-  - name: ""
-    type: ""
-    example: ""
+  - name: "reply"
+    type: "string"
 
 commands:
   - name: "sub-command"
@@ -24,7 +23,6 @@ commands:
     script: "sub.tengo"
     authors:
       - John, Jonh@gmail.com
-      -
     examples: |
 
     params:
