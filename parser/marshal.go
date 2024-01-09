@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import (
 	"encoding/json"
@@ -59,30 +59,30 @@ func makeNilValueMap[K comparable, V any](m map[K]*V) map[K]alwaysNil {
 	return lo.MapValues(m, func(_ *V, _ K) alwaysNil { return nil })
 }
 
-func (inventory *Inventory) UnmarshalJSON(data []byte) error {
-	type inventoryWithoutCustomUnmarshal Inventory
-	var rawInventory inventoryWithoutCustomUnmarshal
-	if err := json.Unmarshal(data, &rawInventory); err != nil {
+func (dl *DataLoader) UnmarshalJSON(data []byte) error {
+	type inventoryWithoutCustomUnmarshal DataLoader
+	var rawDataLoader inventoryWithoutCustomUnmarshal
+	if err := json.Unmarshal(data, &rawDataLoader); err != nil {
 		return err
 	}
-	// rawInventory's Groups and Hosts should now contain all properties,
+	// rawDataLoader's Groups and Hosts should now contain all properties,
 	// except child group maps and host maps are filled with original keys and null values
 
-	// reassign child groups and hosts to reference rawInventory.Hosts and .Groups
+	// reassign child groups and hosts to reference rawDataLoader.Hosts and .Groups
 
-	for _, group := range rawInventory.Groups {
-		group.Hosts = lo.PickByKeys(rawInventory.Hosts, maps.Keys(group.Hosts))
-		group.Children = lo.PickByKeys(rawInventory.Groups, maps.Keys(group.Children))
-		group.Parents = lo.PickByKeys(rawInventory.Groups, maps.Keys(group.Parents))
-		group.DirectParents = lo.PickByKeys(rawInventory.Groups, maps.Keys(group.DirectParents))
+	for _, group := range rawDataLoader.Groups {
+		group.Hosts = lo.PickByKeys(rawDataLoader.Hosts, maps.Keys(group.Hosts))
+		group.Children = lo.PickByKeys(rawDataLoader.Groups, maps.Keys(group.Children))
+		group.Parents = lo.PickByKeys(rawDataLoader.Groups, maps.Keys(group.Parents))
+		group.DirectParents = lo.PickByKeys(rawDataLoader.Groups, maps.Keys(group.DirectParents))
 	}
 
-	for _, host := range rawInventory.Hosts {
-		host.Groups = lo.PickByKeys(rawInventory.Groups, maps.Keys(host.Groups))
-		host.DirectGroups = lo.PickByKeys(rawInventory.Groups, maps.Keys(host.DirectGroups))
+	for _, host := range rawDataLoader.Hosts {
+		host.Groups = lo.PickByKeys(rawDataLoader.Groups, maps.Keys(host.Groups))
+		host.DirectGroups = lo.PickByKeys(rawDataLoader.Groups, maps.Keys(host.DirectGroups))
 	}
 
-	inventory.Groups = rawInventory.Groups
-	inventory.Hosts = rawInventory.Hosts
+	dl.Groups = rawDataLoader.Groups
+	dl.Hosts = rawDataLoader.Hosts
 	return nil
 }

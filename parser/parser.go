@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import (
 	"bufio"
@@ -51,15 +51,18 @@ func getState(str string) (state, bool) {
 
 // state enum end
 
+func (dl *DataLoader) initData() {
+	dl.Groups = make(map[string]*Group)
+	dl.Hosts = make(map[string]*Host)
+}
+
 // parser performs parsing of inventory file from some Reader
-func (inventory *Inventory) parse(reader *bufio.Reader) error {
+func (dl *DataLoader) parse(reader *bufio.Reader) error {
 	// This regexp is copy-pasted from ansible sources
 	sectionRegex := regexp.MustCompile(`^\[([^:\]\s]+)(?::(\w+))?\]\s*(?:\#.*)?$`)
 	scanner := bufio.NewScanner(reader)
-	inventory.Groups = make(map[string]*Group)
-	inventory.Hosts = make(map[string]*Host)
 	activeState := hostsState
-	activeGroup := inventory.getOrCreateGroup("ungrouped")
+	activeGroup := dl.getOrCreateGroup("ungrouped")
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -68,7 +71,7 @@ func (inventory *Inventory) parse(reader *bufio.Reader) error {
 		}
 		matches := sectionRegex.FindAllStringSubmatch(line, -1)
 		if matches != nil {
-			activeGroup = inventory.getOrCreateGroup(matches[0][1])
+			activeGroup = dl.getOrCreateGroup(matches[0][1])
 			var ok bool
 			if activeState, ok = getState(matches[0][2]); !ok {
 				return fmt.Errorf("section [%s] has unknown type: %s", line, matches[0][2])
@@ -80,13 +83,13 @@ func (inventory *Inventory) parse(reader *bufio.Reader) error {
 		}
 
 		if activeState == hostsState {
-			hosts, err := inventory.getHosts(line, activeGroup)
+			hosts, err := dl.getHosts(line, activeGroup)
 			if err != nil {
 				return err
 			}
 			for _, host := range hosts {
 				host.DirectGroups[activeGroup.Name] = activeGroup
-				inventory.Hosts[host.Name] = host
+				dl.Hosts[host.Name] = host
 				if activeGroup.Name != "ungrouped" {
 					delete(host.DirectGroups, "ungrouped")
 				}
@@ -98,9 +101,9 @@ func (inventory *Inventory) parse(reader *bufio.Reader) error {
 				return err
 			}
 			groupName := parsed[0]
-			newGroup := inventory.getOrCreateGroup(groupName)
+			newGroup := dl.getOrCreateGroup(groupName)
 			newGroup.DirectParents[activeGroup.Name] = activeGroup
-			inventory.Groups[line] = newGroup
+			dl.Groups[line] = newGroup
 		}
 		if activeState == varsState {
 			k, v, err := splitKV(line)
@@ -110,12 +113,12 @@ func (inventory *Inventory) parse(reader *bufio.Reader) error {
 			activeGroup.InventoryVars[k] = v
 		}
 	}
-	inventory.Groups[activeGroup.Name] = activeGroup
+	dl.Groups[activeGroup.Name] = activeGroup
 	return nil
 }
 
 // getHosts parses given "host" line from inventory
-func (inventory *Inventory) getHosts(line string, group *Group) (map[string]*Host, error) {
+func (dl *DataLoader) getHosts(line string, group *Group) (map[string]*Host, error) {
 	parts, err := shlex.Split(line)
 	if err != nil {
 		return nil, err
@@ -140,7 +143,7 @@ func (inventory *Inventory) getHosts(line string, group *Group) (map[string]*Hos
 			vars[k] = v
 		}
 
-		host := inventory.getOrCreateHost(hostname)
+		host := dl.getOrCreateHost(hostname)
 		host.Port = port
 		host.DirectGroups[group.Name] = group
 		addValues(host.InventoryVars, vars)

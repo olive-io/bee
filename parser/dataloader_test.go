@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import (
 	"fmt"
@@ -21,10 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func parseString(t *testing.T, input string) *Inventory {
-	v, err := ParseString(input)
+func parseString(t *testing.T, input string) *DataLoader {
+	dl := NewDataLoader()
+	err := dl.ParseString(input)
 	assert.Nil(t, err, fmt.Sprintf("Error occurred while parsing: %s", err))
-	return v
+	return dl
 }
 
 func TestBelongToBasicGroups(t *testing.T) {
@@ -65,6 +66,9 @@ func TestBelongToBasicGroups(t *testing.T) {
 
 	assert.Equal(t, 2221, v.Hosts["host1"].Port, "Host1 port is set")
 	assert.Equal(t, 22, v.Hosts["host2"].Port, "Host2 port is set")
+
+	_ = v.ParseString(`host3:1001`)
+	assert.Equal(t, 1001, v.Hosts["host3"].Port, "Host3 port is set")
 }
 
 func TestGroupStructure(t *testing.T) {
@@ -452,7 +456,7 @@ func TestHostMatching(t *testing.T) {
 	tomcat-1
 	cat
 	`)
-	hosts := v.Match("*cat*")
+	hosts, _ := v.MatchHosts("*cat*")
 	assert.Len(t, hosts, 4)
 }
 

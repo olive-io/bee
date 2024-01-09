@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
-// Inventory-related helper methods
+// DataLoader-related helper methods
 
 // Reconcile ensures inventory basic rules, run after updates.
 // After initial inventory file processing, only direct relationships are set.
@@ -23,34 +23,34 @@ package ini
 //   - (re)sets Children and Parents for hosts and groups
 //   - ensures that mandatory groups exist
 //   - calculates variables for hosts and groups
-func (inventory *Inventory) Reconcile() {
+func (dl *DataLoader) Reconcile() {
 	// Clear all computed data
-	for _, host := range inventory.Hosts {
+	for _, host := range dl.Hosts {
 		host.clearData()
 	}
 	// a group can be empty (with no hosts in it), so the previous method will not clean it
 	// on the other hand, a group could have been attached to a host by a user, but not added to the inventory.Groups map
 	// so it's safer just to clean everything
-	for _, group := range inventory.Groups {
-		group.clearData(make(map[string]struct{}, len(inventory.Groups)))
+	for _, group := range dl.Groups {
+		group.clearData(make(map[string]struct{}, len(dl.Groups)))
 	}
 
-	allGroup := inventory.getOrCreateGroup("all")
-	ungroupedGroup := inventory.getOrCreateGroup("ungrouped")
+	allGroup := dl.getOrCreateGroup("all")
+	ungroupedGroup := dl.getOrCreateGroup("ungrouped")
 	ungroupedGroup.DirectParents[allGroup.Name] = allGroup
 
 	// First, ensure that inventory.Groups contains all the groups
-	for _, host := range inventory.Hosts {
+	for _, host := range dl.Hosts {
 		for _, group := range host.DirectGroups {
-			inventory.Groups[group.Name] = group
+			dl.Groups[group.Name] = group
 			for _, ancestor := range group.ListParentGroupsOrdered() {
-				inventory.Groups[ancestor.Name] = ancestor
+				dl.Groups[ancestor.Name] = ancestor
 			}
 		}
 	}
 
 	// Calculate intergroup relationships
-	for _, group := range inventory.Groups {
+	for _, group := range dl.Groups {
 		group.DirectParents[allGroup.Name] = allGroup
 		for _, ancestor := range group.ListParentGroupsOrdered() {
 			group.Parents[ancestor.Name] = ancestor
@@ -59,7 +59,7 @@ func (inventory *Inventory) Reconcile() {
 	}
 
 	// Now set hosts for groups and groups for hosts
-	for _, host := range inventory.Hosts {
+	for _, host := range dl.Hosts {
 		host.Groups[allGroup.Name] = allGroup
 		for _, group := range host.DirectGroups {
 			group.Hosts[host.Name] = host
@@ -72,7 +72,7 @@ func (inventory *Inventory) Reconcile() {
 			}
 		}
 	}
-	inventory.reconcileVars()
+	dl.reconcileVars()
 }
 
 func (host *Host) clearData() {
@@ -100,8 +100,8 @@ func (group *Group) clearData(visited map[string]struct{}) {
 }
 
 // getOrCreateGroup return group from inventory if exists or creates empty Group with given name
-func (inventory *Inventory) getOrCreateGroup(groupName string) *Group {
-	if group, ok := inventory.Groups[groupName]; ok {
+func (dl *DataLoader) getOrCreateGroup(groupName string) *Group {
+	if group, ok := dl.Groups[groupName]; ok {
 		return group
 	}
 	g := &Group{
@@ -115,13 +115,13 @@ func (inventory *Inventory) getOrCreateGroup(groupName string) *Group {
 		InventoryVars: make(map[string]string),
 		FileVars:      make(map[string]string),
 	}
-	inventory.Groups[groupName] = g
+	dl.Groups[groupName] = g
 	return g
 }
 
 // getOrCreateHost return host from inventory if exists or creates empty Host with given name
-func (inventory *Inventory) getOrCreateHost(hostName string) *Host {
-	if host, ok := inventory.Hosts[hostName]; ok {
+func (dl *DataLoader) getOrCreateHost(hostName string) *Host {
+	if host, ok := dl.Hosts[hostName]; ok {
 		return host
 	}
 	h := &Host{
@@ -134,7 +134,7 @@ func (inventory *Inventory) getOrCreateHost(hostName string) *Host {
 		InventoryVars: make(map[string]string),
 		FileVars:      make(map[string]string),
 	}
-	inventory.Hosts[hostName] = h
+	dl.Hosts[hostName] = h
 	return h
 }
 

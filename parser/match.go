@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import "path"
 
 // MatchHosts looks for hosts that match the pattern
-func (inventory *Inventory) MatchHosts(pattern string) (map[string]*Host, error) {
-	return MatchHosts(inventory.Hosts, pattern)
+func (dl *DataLoader) MatchHosts(pattern string) (map[string]*Host, error) {
+	return MatchHosts(dl.Hosts, pattern)
 }
 
 // MatchHosts looks for hosts that match the pattern
@@ -42,8 +42,8 @@ func MatchHosts(hosts map[string]*Host, pattern string) (map[string]*Host, error
 }
 
 // MatchGroups looks for groups that match the pattern
-func (inventory *Inventory) MatchGroups(pattern string) (map[string]*Group, error) {
-	return MatchGroups(inventory.Groups, pattern)
+func (dl *DataLoader) MatchGroups(pattern string) (map[string]*Group, error) {
+	return MatchGroups(dl.Groups, pattern)
 }
 
 // MatchGroups looks for groups that match the pattern

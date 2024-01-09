@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import (
 	_ "embed"
@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const minMarshalInventory = `[Animals]
+const minMarshalDataLoader = `[Animals]
 ET
 
 [Animals:children]
@@ -36,7 +36,8 @@ Lion
 var minMarshalJSON string
 
 func TestMarshalJSON(t *testing.T) {
-	v, err := ParseString(minMarshalInventory)
+	v := NewDataLoader()
+	err := v.ParseString(minMarshalDataLoader)
 	assert.Nil(t, err)
 
 	j, err := json.MarshalIndent(v, "", "    ")
@@ -44,7 +45,7 @@ func TestMarshalJSON(t *testing.T) {
 	assert.Equal(t, minMarshalJSON, string(j))
 
 	t.Run("unmarshal", func(t *testing.T) {
-		var v2 Inventory
+		var v2 DataLoader
 		assert.Nil(t, json.Unmarshal(j, &v2))
 		assert.Equal(t, v.Hosts["Lion"], v2.Hosts["Lion"])
 		assert.Equal(t, v.Groups["Cats"], v2.Groups["Cats"])
@@ -52,7 +53,8 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestMarshalWithVars(t *testing.T) {
-	v, err := ParseFile("test_data/inventory")
+	v := NewDataLoader()
+	err := v.ParseFile("test_data/inventory")
 	assert.Nil(t, err)
 
 	v.HostsToLower()
@@ -63,7 +65,7 @@ func TestMarshalWithVars(t *testing.T) {
 	assert.Nil(t, err)
 
 	t.Run("unmarshal", func(t *testing.T) {
-		var v2 Inventory
+		var v2 DataLoader
 		assert.Nil(t, json.Unmarshal(j, &v2))
 		assert.Equal(t, v.Hosts["host1"], v2.Hosts["host1"])
 		assert.Equal(t, v.Groups["tomcat"], v2.Groups["tomcat"])

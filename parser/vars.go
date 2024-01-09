@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,25 +27,25 @@ import (
 )
 
 // AddVars take a path that contains group_vars and host_vars directories
-// and adds these variables to the Inventory
-func (inventory *Inventory) AddVars(path string) error {
-	return inventory.doAddVars(path, false)
+// and adds these variables to the DataLoader
+func (dl *DataLoader) AddVars(path string) error {
+	return dl.doAddVars(path, false)
 }
 
 // AddVarsLowerCased does the same as AddVars, but converts hostnames and groups name to lowercase.
 // Use this function if you've executed `inventory.HostsToLower` or `inventory.GroupsToLower`
-func (inventory *Inventory) AddVarsLowerCased(path string) error {
-	return inventory.doAddVars(path, true)
+func (dl *DataLoader) AddVarsLowerCased(path string) error {
+	return dl.doAddVars(path, true)
 }
 
-func (inventory *Inventory) doAddVars(path string, lowercased bool) error {
+func (dl *DataLoader) doAddVars(path string, lowercased bool) error {
 	_, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
-	walk(path, "group_vars", inventory.getGroupsMap(), lowercased)
-	walk(path, "host_vars", inventory.getHostsMap(), lowercased)
-	inventory.reconcileVars()
+	walk(path, "group_vars", dl.getGroupsMap(), lowercased)
+	walk(path, "host_vars", dl.getHostsMap(), lowercased)
+	dl.reconcileVars()
 	return nil
 }
 
@@ -62,17 +61,17 @@ func (group *Group) getFileVars() map[string]string {
 	return group.FileVars
 }
 
-func (inventory *Inventory) getHostsMap() map[string]fileVarsGetter {
-	result := make(map[string]fileVarsGetter, len(inventory.Hosts))
-	for k, v := range inventory.Hosts {
+func (dl *DataLoader) getHostsMap() map[string]fileVarsGetter {
+	result := make(map[string]fileVarsGetter, len(dl.Hosts))
+	for k, v := range dl.Hosts {
 		result[k] = v
 	}
 	return result
 }
 
-func (inventory *Inventory) getGroupsMap() map[string]fileVarsGetter {
-	result := make(map[string]fileVarsGetter, len(inventory.Groups))
-	for k, v := range inventory.Groups {
+func (dl *DataLoader) getGroupsMap() map[string]fileVarsGetter {
+	result := make(map[string]fileVarsGetter, len(dl.Groups))
+	for k, v := range dl.Groups {
 		result[k] = v
 	}
 	return result
@@ -124,7 +123,7 @@ func addVarsFromFile(currentVars map[string]string, path string) error {
 	if ext != ".yaml" && ext != ".yml" {
 		return nil
 	}
-	f, err := ioutil.ReadFile(path)
+	f, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -152,7 +151,7 @@ func addVarsFromFile(currentVars map[string]string, path string) error {
 	return nil
 }
 
-func (inventory *Inventory) reconcileVars() {
+func (dl *DataLoader) reconcileVars() {
 	/*
 		Priority of variables is defined here: https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#understanding-variable-precedence
 		Distilled list looks like this:
@@ -161,11 +160,11 @@ func (inventory *Inventory) reconcileVars() {
 			3. inventory file host vars
 			4. inventory host_vars/*
 	*/
-	for _, group := range inventory.Groups {
+	for _, group := range dl.Groups {
 		group.AllInventoryVars = nil
 		group.AllFileVars = nil
 	}
-	for _, group := range inventory.Groups {
+	for _, group := range dl.Groups {
 		group.Vars = make(map[string]string)
 		group.populateInventoryVars()
 		group.populateFileVars()
@@ -174,7 +173,7 @@ func (inventory *Inventory) reconcileVars() {
 		group.Vars = copyStringMap(group.AllInventoryVars)
 		addValues(group.Vars, group.AllFileVars)
 	}
-	for _, host := range inventory.Hosts {
+	for _, host := range dl.Hosts {
 		host.Vars = make(map[string]string)
 		for _, group := range GroupMapListValues(host.DirectGroups) {
 			addValues(host.Vars, group.Vars)

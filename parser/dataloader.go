@@ -12,21 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import (
 	"bufio"
 	"bytes"
 	"io"
 	"os"
-	"path"
 	"sort"
 	"strings"
 )
 
-// Inventory contains parsed inventory representation
+// DataLoader contains parsed inventory representation
 // Note: Groups and Hosts fields contain all the groups and hosts, not only top-level
-type Inventory struct {
+type DataLoader struct {
 	Groups map[string]*Group
 	Hosts  map[string]*Host
 }
@@ -64,43 +63,36 @@ type Host struct {
 	FileVars map[string]string
 }
 
-// ParseFile parses Inventory represented as a file
-func ParseFile(f string) (*Inventory, error) {
-	bs, err := os.ReadFile(f)
-	if err != nil {
-		return &Inventory{}, err
-	}
-
-	return Parse(bytes.NewReader(bs))
+func NewDataLoader() *DataLoader {
+	dl := &DataLoader{}
+	dl.initData()
+	return dl
 }
 
-// ParseString parses Inventory represented as a string
-func ParseString(input string) (*Inventory, error) {
-	return Parse(strings.NewReader(input))
+// ParseFile parses DataLoader represented as a file
+func (dl *DataLoader) ParseFile(f string) error {
+	bs, err := os.ReadFile(f)
+	if err != nil {
+		return err
+	}
+
+	return dl.Parse(bytes.NewReader(bs))
+}
+
+// ParseString parses DataLoader represented as a string
+func (dl *DataLoader) ParseString(input string) error {
+	return dl.Parse(strings.NewReader(input))
 }
 
 // Parse using some Reader
-func Parse(r io.Reader) (*Inventory, error) {
+func (dl *DataLoader) Parse(r io.Reader) error {
 	input := bufio.NewReader(r)
-	inventory := &Inventory{}
-	err := inventory.parse(input)
+	err := dl.parse(input)
 	if err != nil {
-		return inventory, err
+		return err
 	}
-	inventory.Reconcile()
-	return inventory, nil
-}
-
-// Match looks for hosts that match the pattern
-// Deprecated: Use `MatchHosts`, which does proper error handling
-func (inventory *Inventory) Match(pattern string) []*Host {
-	matchedHosts := make([]*Host, 0)
-	for _, host := range inventory.Hosts {
-		if m, err := path.Match(pattern, host.Name); err == nil && m {
-			matchedHosts = append(matchedHosts, host)
-		}
-	}
-	return matchedHosts
+	dl.Reconcile()
+	return nil
 }
 
 // GroupMapListValues transforms map of Groups into Group list in lexical order
@@ -134,9 +126,9 @@ func HostMapListValues(mymap map[string]*Host) []*Host {
 }
 
 // HostsToLower transforms all host names to lowercase
-func (inventory *Inventory) HostsToLower() {
-	inventory.Hosts = hostMapToLower(inventory.Hosts, false)
-	for _, group := range inventory.Groups {
+func (dl *DataLoader) HostsToLower() {
+	dl.Hosts = hostMapToLower(dl.Hosts, false)
+	for _, group := range dl.Groups {
 		group.Hosts = hostMapToLower(group.Hosts, true)
 	}
 }
@@ -154,9 +146,9 @@ func hostMapToLower(hosts map[string]*Host, keysOnly bool) map[string]*Host {
 }
 
 // GroupsToLower transforms all group names to lowercase
-func (inventory *Inventory) GroupsToLower() {
-	inventory.Groups = groupMapToLower(inventory.Groups, false)
-	for _, host := range inventory.Hosts {
+func (dl *DataLoader) GroupsToLower() {
+	dl.Groups = groupMapToLower(dl.Groups, false)
+	for _, host := range dl.Hosts {
 		host.DirectGroups = groupMapToLower(host.DirectGroups, true)
 		host.Groups = groupMapToLower(host.Groups, true)
 	}

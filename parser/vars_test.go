@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ini
+package parser
 
 import (
 	"testing"
@@ -21,7 +21,8 @@ import (
 )
 
 func TestAddVars(t *testing.T) {
-	v, err := ParseFile("test_data/inventory")
+	v := NewDataLoader()
+	err := v.ParseFile("test_data/inventory")
 	assert.Nil(t, err)
 
 	assert.Equal(t, "present", v.Groups["web"].Vars["web_inventory_string_var"])
@@ -57,7 +58,8 @@ func TestAddVars(t *testing.T) {
 }
 
 func TestAddVarsLowerCased(t *testing.T) {
-	v, err := ParseFile("test_data/inventory")
+	v := NewDataLoader()
+	err := v.ParseFile("test_data/inventory")
 	assert.Nil(t, err)
 
 	v.HostsToLower()
