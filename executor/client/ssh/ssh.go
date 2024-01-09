@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/olive-io/bee/client"
+	"github.com/olive-io/bee/executor/client"
 )
 
 type Client struct {

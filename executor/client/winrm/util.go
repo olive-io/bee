@@ -25,7 +25,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/masterzen/winrm"
 
-	"github.com/olive-io/bee/client"
+	"github.com/olive-io/bee/executor/client"
 )
 
 type pslist struct {

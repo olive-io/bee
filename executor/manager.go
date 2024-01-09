@@ -12,37 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package interpreter
-
-import "strings"
-
-// Kind the kind of Interpreter
-type Kind string
-
-const (
-	Unknown    Kind = ""
-	Tengo      Kind = "tengo"
-	Bash       Kind = "bash"
-	Powershell Kind = "powershell"
-)
-
-var ks = map[Kind][]string{
-	Tengo:      []string{".tengo"},
-	Bash:       []string{".bash", ".sh"},
-	Powershell: []string{".ps", ".bat"},
-}
-
-func KnownExt(ext string) (Kind, bool) {
-	for kind, exts := range ks {
-		for _, item := range exts {
-			if strings.HasSuffix(ext, item) {
-				return kind, true
-			}
-		}
-	}
-	return Unknown, false
-}
-
-type Interpreter interface {
-	Kind() Kind
-}
+package executor

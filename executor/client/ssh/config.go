@@ -20,7 +20,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/olive-io/bee/client"
+	"github.com/olive-io/bee/executor/client"
 )
 
 type Config struct {

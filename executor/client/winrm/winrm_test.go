@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	"github.com/olive-io/bee/client"
+	"github.com/olive-io/bee/executor/client"
 )
 
 func newwinrm(t *testing.T) *WinRM {

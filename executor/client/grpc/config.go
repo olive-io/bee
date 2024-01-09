@@ -12,66 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package winrm
+package grpc
 
 import (
 	"fmt"
+	"time"
 
-	"github.com/masterzen/winrm"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
-	"github.com/olive-io/bee/client"
-)
-
-const (
-	DefaultWinRMPort = 5985
+	"github.com/olive-io/bee/executor/client"
 )
 
 type Config struct {
-	winrm.Endpoint
+	Address string
+	Timeout time.Duration
 
-	Username string
-	Password string
+	conn *grpc.ClientConn
 
 	lg *zap.Logger
 }
 
-func NewConfig(lg *zap.Logger, host, username, password string) *Config {
+func NewConfig(lg *zap.Logger, addr string) *Config {
 	if lg == nil {
 		lg = zap.NewExample()
 	}
 	cfg := &Config{
-		Endpoint: winrm.Endpoint{
-			Host:     host,
-			Port:     DefaultWinRMPort,
-			Insecure: true,
-			Timeout:  client.DefaultDialTimeout,
-		},
-		Username: username,
-		Password: password,
-		lg:       lg,
+		Address: addr,
+		Timeout: client.DefaultDialTimeout,
+		lg:      lg,
 	}
+
 	return cfg
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.Host == "" {
-		return fmt.Errorf("missing host")
+	if cfg.Address == "" {
+		return fmt.Errorf("missing address")
 	}
-	if cfg.Port == 0 {
-		cfg.Port = DefaultWinRMPort
-	}
-	if !cfg.HTTPS {
-		cfg.Insecure = true
-	}
-
-	if cfg.Username == "" {
-		return fmt.Errorf("missing username")
-	}
-	if cfg.Password == "" {
-		return fmt.Errorf("missing password")
-	}
-
 	if cfg.Timeout == 0 {
 		cfg.Timeout = client.DefaultDialTimeout
 	}

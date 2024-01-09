@@ -31,7 +31,7 @@ import (
 
 	pb "github.com/olive-io/bee/api/rpc"
 	"github.com/olive-io/bee/api/rpctype"
-	"github.com/olive-io/bee/client"
+	"github.com/olive-io/bee/executor/client"
 )
 
 type Client struct {

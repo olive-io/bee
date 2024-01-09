@@ -12,21 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package winrm
+package grpc
 
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/cockroachdb/errors"
-	"github.com/masterzen/winrm"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
-	"github.com/olive-io/bee/client"
+	pb "github.com/olive-io/bee/api/rpc"
+	"github.com/olive-io/bee/api/rpctype"
+	"github.com/olive-io/bee/executor/client"
 )
 
 var (
@@ -34,30 +35,69 @@ var (
 	ErrNotStarted     = errors.New("cmd not started")
 )
 
+type cmdReader struct {
+	s pb.RemoteRPC_ExecuteClient
+}
+
+func (r *cmdReader) Write(data []byte) (n int, err error) {
+	n = len(data)
+	err = r.s.Send(&pb.ExecuteRequest{Data: data})
+	return
+}
+
+func (r *cmdReader) Close() error {
+	return r.s.CloseSend()
+}
+
 type Cmd struct {
-	ctx context.Context
+	lg *zap.Logger
+
+	ctx     context.Context
+	cancel  context.CancelFunc
+	options []grpc.CallOption
+
+	cc pb.RemoteRPCClient
+	s  pb.RemoteRPC_ExecuteClient
 
 	name string
 	args []string
 	envs map[string]string
 
-	s      *winrm.Shell
-	c      *winrm.Command
 	stdin  io.Reader
-	stdout io.WriteCloser
-	stderr io.WriteCloser
+	stdout io.Writer
+	stderr io.Writer
 
-	childIOFiles  []io.Closer
-	parentIOPipes []io.Closer
+	wgMu sync.RWMutex
+	wg   sync.WaitGroup
 
-	wg sync.WaitGroup
+	stopping chan struct{}
+	done     chan struct{}
+	stop     chan struct{}
+}
+
+func (c *Cmd) goroutine(fn func()) {
+	c.wgMu.RLock() // this blocks with ongoing close(s.stopping)
+	defer c.wgMu.RUnlock()
+	select {
+	case <-c.stopping:
+		c.lg.Warn("server has stopped; skipping GoAttach")
+		return
+	default:
+	}
+
+	// now safe to add since waitgroup wait has not started yet
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		fn()
+	}()
 }
 
 func (c *Cmd) StdinPipe() (io.WriteCloser, error) {
 	if c.stdin != nil {
 		return nil, errors.New("exec: Stdin already set")
 	}
-	if c.c != nil {
+	if c.s != nil {
 		return nil, ErrAlreadyStarted
 	}
 	pr, pw, err := os.Pipe()
@@ -65,8 +105,6 @@ func (c *Cmd) StdinPipe() (io.WriteCloser, error) {
 		return nil, err
 	}
 	c.stdin = pr
-	//c.childIOFiles = append(c.childIOFiles, pr)
-	//c.parentIOPipes = append(c.parentIOPipes, pw)
 	return pw, nil
 }
 
@@ -74,7 +112,7 @@ func (c *Cmd) StdoutPipe() (io.Reader, error) {
 	if c.stdout != nil {
 		return nil, errors.New("exec: Stdout already set")
 	}
-	if c.c != nil {
+	if c.s != nil {
 		return nil, ErrAlreadyStarted
 	}
 	pr, pw, err := os.Pipe()
@@ -89,7 +127,7 @@ func (c *Cmd) StderrPipe() (io.Reader, error) {
 	if c.stderr != nil {
 		return nil, errors.New("exec: Stderr already set")
 	}
-	if c.c != nil {
+	if c.s != nil {
 		return nil, ErrAlreadyStarted
 	}
 	pr, pw, err := os.Pipe()
@@ -101,15 +139,31 @@ func (c *Cmd) StderrPipe() (io.Reader, error) {
 }
 
 func (c *Cmd) Start() error {
-	if c.c != nil {
+	if c.s != nil {
 		return ErrAlreadyStarted
 	}
 
-	ctx := c.ctx
-	shell := fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
-	cc, err := c.s.ExecuteWithContext(ctx, shell)
+	var err error
+	c.s, err = c.cc.Execute(c.ctx, c.options...)
 	if err != nil {
-		return errors.Wrapf(client.ErrRequest, err.Error())
+		return rpctype.ParseGRPCErr(err)
+	}
+
+	req := &pb.ExecuteRequest{
+		Name: c.name,
+		Args: c.args,
+		Envs: c.envs,
+	}
+	if err = c.s.Send(req); err != nil {
+		return rpctype.ParseGRPCErr(err)
+	}
+
+	rsp, err := c.s.Recv()
+	if err != nil {
+		return rpctype.ToGRPCErr(err)
+	}
+	if len(rsp.Stderr) != 0 {
+		return errors.Wrap(client.ErrRequest, string(rsp.Stderr))
 	}
 
 	var b singleWriter
@@ -120,47 +174,65 @@ func (c *Cmd) Start() error {
 		c.stderr = &b
 	}
 
-	c.wg.Add(3)
-	go func() {
+	cw := &cmdReader{s: c.s}
+
+	c.goroutine(func() {
+		defer cw.Close()
 		if c.stdin == nil {
-			c.wg.Done()
 			return
 		}
 
-		defer func() {
-			cc.Stdin.Close()
-			c.wg.Done()
-		}()
-		io.Copy(cc.Stdin, c.stdin)
-	}()
-	go func() {
-		defer c.wg.Done()
-		io.Copy(c.stdout, cc.Stdout)
-	}()
-	go func() {
-		defer c.wg.Done()
-		io.Copy(c.stderr, cc.Stderr)
-	}()
+		_, _ = io.Copy(cw, c.stdin)
+	})
 
-	c.c = cc
+	c.goroutine(func() {
+		for {
+			select {
+			case <-c.stopping:
+				return
+			default:
+			}
+
+			rsp, e1 := c.s.Recv()
+			if rsp != nil {
+				if rsp.Stdout != nil {
+					c.stdout.Write(rsp.Stdout)
+				}
+				if rsp.Stderr != nil {
+					c.stderr.Write(rsp.Stderr)
+				}
+			}
+
+			if e1 != nil {
+				if e1 != io.EOF {
+					c.stderr.Write([]byte(e1.Error()))
+				}
+				break
+			}
+		}
+
+		close(c.stop)
+	})
 
 	return nil
 }
 
 func (c *Cmd) Wait() error {
-	if c.c == nil {
+	if c.s == nil {
 		return ErrNotStarted
 	}
-	c.c.Wait()
-	c.wg.Wait()
 
-	if err := c.c.Close(); err != nil {
-		return err
-	}
+	defer func() {
+		c.wgMu.Lock() // block concurrent waitgroup adds in GoAttach while stopping
+		close(c.stopping)
+		c.wgMu.Unlock()
 
-	if code := c.c.ExitCode(); code != 0 {
-		return fmt.Errorf("code %d", code)
-	}
+		c.wg.Wait()
+
+		close(c.done)
+	}()
+
+	<-c.stop
 	return nil
 }
 
@@ -183,11 +255,14 @@ func (w *singleWriter) Write(p []byte) (int, error) {
 }
 
 func (w *singleWriter) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.b.Reset()
 	return nil
 }
 
 func (c *Cmd) CombinedOutput() ([]byte, error) {
-	if c.c != nil {
+	if c.s != nil {
 		return nil, ErrAlreadyStarted
 	}
 
@@ -205,11 +280,11 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
 }
 
 func (c *Cmd) Close() error {
-	return c.s.Close()
-}
-
-func closeDescriptors(closers []io.Closer) {
-	for _, fd := range closers {
-		fd.Close()
+	if c.s == nil {
+		return ErrNotStarted
 	}
+
+	c.cancel()
+	<-c.stop
+	return nil
 }

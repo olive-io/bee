@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/sftp"
 
-	"github.com/olive-io/bee/client"
+	"github.com/olive-io/bee/executor/client"
 )
 
 func get(

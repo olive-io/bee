@@ -31,7 +31,7 @@ import (
 	"github.com/masterzen/winrm"
 	"go.uber.org/zap"
 
-	"github.com/olive-io/bee/client"
+	"github.com/olive-io/bee/executor/client"
 )
 
 type fileWalker struct {
