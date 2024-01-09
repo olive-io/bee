@@ -14,27 +14,27 @@
 
 package builtin
 
-import "github.com/olive-io/bee/modules"
+import "github.com/olive-io/bee/module"
 
 const pingExample = ``
 
-var pingModule = &modules.Module{
-	Command: &modules.Command{
+var pingModule = &module.Module{
+	Command: &module.Command{
 		Name:    "ping",
 		Long:    "",
 		Script:  "builtin/ping.tengo",
 		Authors: []string{"lack"},
 		Version: "v1.0.0",
 		Example: pingExample,
-		Params: []*modules.Schema{
+		Params: []*module.Schema{
 			{
 				Name:        "data",
 				Type:        "string",
-				Description: "Data to return for the `ping' return value.If this parameter is set to `crash', the module will cause an exception.",
+				Description: "Data to return for the `ping` return value.If this parameter is set to `crash`, the module will cause an error.",
 				Default:     "ping",
 			},
 		},
-		Returns: []*modules.Schema{
+		Returns: []*module.Schema{
 			{
 				Name:    "data",
 				Type:    "string",

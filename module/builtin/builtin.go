@@ -17,12 +17,12 @@ package builtin
 import (
 	"embed"
 
-	"github.com/olive-io/bee/modules"
+	"github.com/olive-io/bee/module"
 )
 
 //go:embed ping.tengo
 var fs embed.FS
 
-var Modules = map[string]*modules.Module{
+var Modules = map[string]*module.Module{
 	"ping": pingModule,
 }
