@@ -13,3 +13,31 @@
 // limitations under the License.
 
 package executor
+
+const (
+	connectVars   = "bee_connect"
+	hostVars      = "bee_host"
+	portVars      = "bee_part"
+	userVars      = "bee_user"
+	sshPasswdVars = "bee_ssh_passwd"
+	sshPrivateKey = "bee_ssh_private_key"
+	sshPassphrase = "bee_ssh_passphrase"
+
+	winRMPasswdVars = "bee_winrm_passwd"
+)
+
+//type connectVars struct {
+//	User   string
+//	Passwd string
+//}
+//
+//type WinRVars struct {
+//	RemoteUser string
+//}
+//
+//type GRPCVars struct {
+//}
+//
+//func getSSHVars(host *parser.Host) *SSHVars {
+//
+//}

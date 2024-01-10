@@ -73,6 +73,10 @@ func (c *Client) newSFTPSession() (*sftp.Client, error) {
 	return sfc, nil
 }
 
+func (c *Client) Name() string {
+	return client.SSHClient
+}
+
 func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
 	options := client.NewGetOptions()
 	for _, opt := range opts {

@@ -24,6 +24,7 @@ import (
 )
 
 const (
+	DefaultWinRMUser = "Administrator"
 	DefaultWinRMPort = 5985
 )
 
@@ -33,7 +34,7 @@ type Config struct {
 	Username string
 	Password string
 
-	lg *zap.Logger
+	Logger *zap.Logger
 }
 
 func NewConfig(lg *zap.Logger, host, username, password string) *Config {
@@ -49,7 +50,7 @@ func NewConfig(lg *zap.Logger, host, username, password string) *Config {
 		},
 		Username: username,
 		Password: password,
-		lg:       lg,
+		Logger:   lg,
 	}
 	return cfg
 }

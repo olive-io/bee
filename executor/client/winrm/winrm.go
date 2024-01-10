@@ -39,7 +39,7 @@ func NewWinRM(cfg Config) (*WinRM, error) {
 		return nil, err
 	}
 
-	lg := cfg.lg
+	lg := cfg.Logger
 	wr := &WinRM{
 		cfg: cfg,
 	}
@@ -62,6 +62,10 @@ func (wr *WinRM) dial() (*winrm.Client, error) {
 		return nil, err
 	}
 	return cc, nil
+}
+
+func (wr *WinRM) Name() string {
+	return client.WinRMClient
 }
 
 func (wr *WinRM) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
@@ -95,7 +99,7 @@ func (wr *WinRM) get(ctx context.Context, remotePath, localPath string, buf []by
 	}
 	defer writer.Close()
 
-	return readContent(ctx, wr.cfg.lg, wr.cc, remotePath, writer, buf, fn)
+	return readContent(ctx, wr.cfg.Logger, wr.cc, remotePath, writer, buf, fn)
 }
 
 func (wr *WinRM) walker(ctx context.Context, items []os.FileInfo, root, local string, buf []byte, fn client.IOTraceFn) error {
@@ -179,7 +183,7 @@ func (wr *WinRM) Copy(ctx context.Context, fromPath, toPath string, fn client.IO
 }
 
 func (wr *WinRM) Write(ctx context.Context, toPath string, src *os.File, fn client.IOTraceFn) error {
-	return doCopy(ctx, wr.cfg.lg, wr.cc, src, winPath(toPath), fn)
+	return doCopy(ctx, wr.cfg.Logger, wr.cc, src, winPath(toPath), fn)
 }
 
 func (wr *WinRM) Close() error {

@@ -34,6 +34,10 @@ import (
 	"github.com/olive-io/bee/executor/client"
 )
 
+const (
+	DefaultGRPCPort = 5450
+)
+
 type Client struct {
 	cfg  Config
 	cc   pb.RemoteRPCClient
@@ -100,6 +104,10 @@ func (c *Client) stat(ctx context.Context, name string) (*pb.FileStat, error) {
 		return nil, rpctype.ParseGRPCErr(err)
 	}
 	return rsp.Stat, nil
+}
+
+func (c *Client) Name() string {
+	return client.GRPCClient
 }
 
 func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {

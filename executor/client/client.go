@@ -25,7 +25,14 @@ const (
 	DefaultDialTimeout = time.Second * 15
 )
 
+const (
+	SSHClient   = "ssh"
+	WinRMClient = "winrm"
+	GRPCClient  = "grpc"
+)
+
 type IClient interface {
+	Name() string
 	// Get gets io.ReadCloser from remote connection
 	Get(ctx context.Context, src, dst string, opts ...GetOption) error
 	// Put uploads local file to remote host

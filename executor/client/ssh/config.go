@@ -16,6 +16,7 @@ package ssh
 
 import (
 	"fmt"
+	"strings"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
@@ -23,12 +24,17 @@ import (
 	"github.com/olive-io/bee/executor/client"
 )
 
+const (
+	DefaultUser = "root"
+	DefaultPort = 22
+)
+
 type Config struct {
 	Network string
 	Addr    string
 
 	ClientConfig *ssh.ClientConfig
-	lg           *zap.Logger
+	Logger       *zap.Logger
 }
 
 func NewAuthConfig(lg *zap.Logger, host, user, password string) *Config {
@@ -41,19 +47,29 @@ func NewAuthConfig(lg *zap.Logger, host, user, password string) *Config {
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 			Timeout:         client.DefaultDialTimeout,
 		},
-		lg: lg,
+		Logger: lg,
 	}
 
 	return cfg
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.lg == nil {
-		cfg.lg = zap.NewExample()
+	if cfg.Logger == nil {
+		cfg.Logger = zap.NewExample()
+	}
+
+	if cfg.Addr == "" {
+		return fmt.Errorf("missing address")
+	}
+	if !strings.Contains(cfg.Addr, ":") {
+		cfg.Addr = fmt.Sprintf("%s:%d", cfg.Addr, DefaultPort)
 	}
 
 	if cfg.ClientConfig == nil {
 		return fmt.Errorf("missing ClientConfig")
+	}
+	if cfg.ClientConfig.User == "" {
+		cfg.ClientConfig.User = DefaultUser
 	}
 
 	if cfg.ClientConfig.Timeout == 0 {
