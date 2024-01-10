@@ -77,6 +77,27 @@ func (c *Client) Name() string {
 	return client.SSHClient
 }
 
+func (c *Client) Stat(ctx context.Context, name string) (*client.Stat, error) {
+	sfc, err := c.newSFTPSession()
+	if err != nil {
+		return nil, errors.Wrap(client.ErrRequest, err.Error())
+	}
+
+	lstat, err := sfc.Stat(name)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, errors.Wrapf(client.ErrNotExists, err.Error())
+	}
+	stat := &client.Stat{
+		Name:    lstat.Name(),
+		IsDir:   lstat.IsDir(),
+		Mod:     lstat.Mode(),
+		ModTime: lstat.ModTime(),
+		Size:    lstat.Size(),
+	}
+
+	return stat, nil
+}
+
 func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
 	options := client.NewGetOptions()
 	for _, opt := range opts {

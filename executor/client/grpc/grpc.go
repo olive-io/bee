@@ -110,6 +110,21 @@ func (c *Client) Name() string {
 	return client.GRPCClient
 }
 
+func (c *Client) Stat(ctx context.Context, name string) (*client.Stat, error) {
+	ps, err := c.stat(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	stat := &client.Stat{
+		Name:    ps.Name,
+		IsDir:   ps.IsDir,
+		Mod:     os.FileMode(ps.Perm),
+		ModTime: time.Unix(ps.ModTime, 0),
+		Size:    ps.Size,
+	}
+	return stat, nil
+}
+
 func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
 	options := client.NewGetOptions()
 	for _, opt := range opts {

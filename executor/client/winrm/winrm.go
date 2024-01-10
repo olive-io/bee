@@ -68,6 +68,27 @@ func (wr *WinRM) Name() string {
 	return client.WinRMClient
 }
 
+func (wr *WinRM) Stat(ctx context.Context, name string) (*client.Stat, error) {
+	info, err := fetchRemoteDir(ctx, wr.cc, name)
+	if err != nil {
+		return nil, err
+	}
+	if len(info) == 0 {
+		return nil, client.ErrNotExists
+	}
+
+	lstat := info[0]
+	stat := &client.Stat{
+		Name:    lstat.Name(),
+		IsDir:   lstat.IsDir(),
+		Mod:     lstat.Mode(),
+		ModTime: lstat.ModTime(),
+		Size:    lstat.Size(),
+	}
+
+	return stat, nil
+}
+
 func (wr *WinRM) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
 	options := client.NewGetOptions()
 	for _, opt := range opts {

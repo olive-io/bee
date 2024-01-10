@@ -17,6 +17,7 @@ package client
 import (
 	"context"
 	"io"
+	"os"
 	"time"
 )
 
@@ -33,6 +34,7 @@ const (
 
 type IClient interface {
 	Name() string
+	Stat(ctx context.Context, name string) (*Stat, error)
 	// Get gets io.ReadCloser from remote connection
 	Get(ctx context.Context, src, dst string, opts ...GetOption) error
 	// Put uploads local file to remote host
@@ -41,6 +43,14 @@ type IClient interface {
 	Execute(ctx context.Context, shell string, opts ...ExecOption) (ICmd, error)
 	// Close closes all remote connections
 	Close() error
+}
+
+type Stat struct {
+	Name    string
+	IsDir   bool
+	Mod     os.FileMode
+	ModTime time.Time
+	Size    int64
 }
 
 type ICmd interface {
@@ -120,12 +130,15 @@ type IOTrace struct {
 type IOTraceFn func(*IOTrace)
 
 type ExecOptions struct {
+	Context context.Context
+
 	Args         []string
 	Environments map[string]string
 }
 
 func NewExecOptions() *ExecOptions {
 	opt := &ExecOptions{
+		Context:      context.TODO(),
 		Environments: map[string]string{},
 	}
 	return opt
@@ -133,9 +146,9 @@ func NewExecOptions() *ExecOptions {
 
 type ExecOption func(*ExecOptions)
 
-func ExecWithArgs(args []string) ExecOption {
+func ExecWithArgs(args ...string) ExecOption {
 	return func(options *ExecOptions) {
-		options.Args = args
+		options.Args = append(options.Args, args...)
 	}
 }
 
@@ -145,5 +158,12 @@ func ExecWithEnv(key, value string) ExecOption {
 			options.Environments = map[string]string{}
 		}
 		options.Environments[key] = value
+	}
+}
+
+// ExecWithValue set key-value at options.Context
+func ExecWithValue(key string, value any) ExecOption {
+	return func(options *ExecOptions) {
+		options.Context = context.WithValue(options.Context, key, value)
 	}
 }
