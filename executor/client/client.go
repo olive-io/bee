@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	DefaultCacheSize   = 1024 * 32
+	DefaultCacheSize   = 1024 * 1024
 	DefaultDialTimeout = time.Second * 15
 )
 
@@ -65,6 +65,8 @@ type ICmd interface {
 }
 
 type GetOptions struct {
+	Context context.Context
+
 	Dir       bool
 	CacheSize int64
 	Trace     IOTraceFn
@@ -72,6 +74,7 @@ type GetOptions struct {
 
 func NewGetOptions() *GetOptions {
 	opt := &GetOptions{
+		Context:   context.TODO(),
 		CacheSize: DefaultCacheSize,
 	}
 	return opt
@@ -91,14 +94,24 @@ func GetWithTrace(trace IOTraceFn) GetOption {
 	}
 }
 
+func GetWithValue(key string, value any) GetOption {
+	return func(options *GetOptions) {
+		options.Context = context.WithValue(options.Context, key, value)
+	}
+}
+
 type PutOptions struct {
+	Context context.Context
+
 	Dir       bool
+	Mkdir     bool
 	CacheSize int64
 	Trace     IOTraceFn
 }
 
 func NewPutOptions() *PutOptions {
 	opt := &PutOptions{
+		Context:   context.TODO(),
 		CacheSize: DefaultCacheSize,
 	}
 	return opt
@@ -112,9 +125,21 @@ func PutWithDir(dir bool) PutOption {
 	}
 }
 
+func PutWithMkdir(mkdir bool) PutOption {
+	return func(options *PutOptions) {
+		options.Mkdir = mkdir
+	}
+}
+
 func PutWithTrace(trace IOTraceFn) PutOption {
 	return func(options *PutOptions) {
 		options.Trace = trace
+	}
+}
+
+func PutWithValue(key string, value any) PutOption {
+	return func(options *PutOptions) {
+		options.Context = context.WithValue(options.Context, key, value)
 	}
 }
 

@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package builtin
+package ping
 
-import "github.com/olive-io/bee/module"
+import (
+	"github.com/olive-io/bee/module"
+)
 
 const pingExample = ``
 
-var pingModule = &module.Module{
+var PingModule = &module.Module{
 	Command: &module.Command{
-		Name:    "ping",
+		Name:    "bee.builtin.ping",
 		Long:    "",
-		Script:  "builtin/ping.tengo",
+		Script:  "builtin/ping/ping.tengo",
 		Authors: []string{"lack"},
 		Version: "v1.0.0",
 		Example: pingExample,
@@ -42,12 +44,5 @@ var pingModule = &module.Module{
 			},
 		},
 	},
-	Dir: "builtin",
-}
-
-func init() {
-	data, _ := fs.ReadFile("ping.tengo")
-	pingModule.ScriptsData = map[string][]byte{
-		pingModule.Script: data,
-	}
+	Dir: "builtin/ping",
 }

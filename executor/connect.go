@@ -32,26 +32,27 @@ import (
 	"github.com/olive-io/bee/executor/client/winrm"
 	"github.com/olive-io/bee/parser"
 	"github.com/olive-io/bee/secret"
+	"github.com/olive-io/bee/vars"
 )
 
 func (e *Executor) buildSSHClient(host *parser.Host) (*ssh.Client, error) {
 	lg := e.lg
 	ch, name := host.Name, host.Name
-	vars := host.Vars
-	if val, ok := vars[hostVars]; ok {
+	variables := host.Vars
+	if val, ok := variables[vars.BeeHostVars]; ok {
 		ch = val
 	}
 	ch, _, _ = strings.Cut(ch, ":")
 
 	port := ssh.DefaultPort
-	if val, ok := vars[portVars]; ok {
+	if val, ok := variables[vars.BeePortVars]; ok {
 		if i, _ := strconv.ParseInt(val, 10, 64); i > 0 {
 			port = int(i)
 		}
 	}
 	addr := fmt.Sprintf("%s:%d", ch, port)
 	user := ssh.DefaultUser
-	if val, ok := vars[userVars]; ok {
+	if val, ok := variables[vars.BeeUserVars]; ok {
 		user = val
 	}
 
@@ -66,26 +67,26 @@ func (e *Executor) buildSSHClient(host *parser.Host) (*ssh.Client, error) {
 	passwd, _ := e.passwords.GetRawPassword(name, secret.WithNamespace("ssh"))
 	if passwd != "" {
 		authMethods = append(authMethods, cssh.Password(passwd))
-	} else if v, ok := vars[sshPasswdVars]; ok {
+	} else if v, ok := variables[vars.BeeSSHPasswdVars]; ok {
 		authMethods = append(authMethods, cssh.Password(v))
 	}
 
 	privateKey := ""
 	var err error
-	if v, ok := vars[sshPrivateKey]; ok {
+	if v, ok := variables[vars.BeeSSHPrivateKeyVars]; ok {
 		privateKey = v
 	} else {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return nil, errors.Wrap(err, "load home dir")
 		}
-		privateKey = filepath.Join(home, ".ssh", "id_rsa.pub")
+		privateKey = filepath.Join(home, ".ssh", "id_rsa")
 	}
 
 	data, _ := os.ReadFile(privateKey)
 	if data != nil {
 		var signer cssh.Signer
-		if v := vars[sshPassphrase]; v == "" {
+		if v := variables[vars.BeeSSHPassphraseVars]; v == "" {
 			signer, err = cssh.ParsePrivateKey(data)
 		} else {
 			signer, err = cssh.ParsePrivateKeyWithPassphrase(data, []byte(v))
@@ -129,14 +130,14 @@ func (e *Executor) buildWinRMClient(host *parser.Host) (*winrm.WinRM, error) {
 	lg := e.lg
 
 	ch, name := host.Name, host.Name
-	vars := host.Vars
-	if val, ok := vars[hostVars]; ok {
+	variables := host.Vars
+	if val, ok := variables[vars.BeeHostVars]; ok {
 		ch = val
 	}
 	ch, _, _ = strings.Cut(ch, ":")
 
 	port := winrm.DefaultWinRMPort
-	if val, ok := vars[portVars]; ok {
+	if val, ok := variables[vars.BeePortVars]; ok {
 		if i, _ := strconv.ParseInt(val, 10, 64); i > 0 {
 			port = int(i)
 		}
@@ -144,7 +145,7 @@ func (e *Executor) buildWinRMClient(host *parser.Host) (*winrm.WinRM, error) {
 	addr := fmt.Sprintf("%s:%d", ch, port)
 
 	user := winrm.DefaultWinRMUser
-	if val, ok := vars[userVars]; ok {
+	if val, ok := variables[vars.BeeUserVars]; ok {
 		user = val
 	}
 
@@ -155,7 +156,7 @@ func (e *Executor) buildWinRMClient(host *parser.Host) (*winrm.WinRM, error) {
 		zap.String("user", user)}
 
 	passwd, err := e.passwords.GetRawPassword(name, secret.WithNamespace("ssh"))
-	if v, ok := vars[winRMPasswdVars]; ok {
+	if v, ok := variables[vars.BeeWMPasswdVars]; ok {
 		passwd = v
 	}
 
@@ -189,14 +190,14 @@ func (e *Executor) buildGRPCClient(host *parser.Host) (*grpc.Client, error) {
 	lg := e.lg
 
 	ch, name := host.Name, host.Name
-	vars := host.Vars
-	if val, ok := vars[hostVars]; ok {
+	variables := host.Vars
+	if val, ok := variables[vars.BeeHostVars]; ok {
 		ch = val
 	}
 	ch, _, _ = strings.Cut(ch, ":")
 
 	port := winrm.DefaultWinRMPort
-	if val, ok := vars[portVars]; ok {
+	if val, ok := variables[vars.BeePortVars]; ok {
 		if i, _ := strconv.ParseInt(val, 10, 64); i > 0 {
 			port = int(i)
 		}

@@ -39,7 +39,7 @@ type Config struct {
 
 func NewConfig(lg *zap.Logger, host, username, password string) *Config {
 	if lg == nil {
-		lg = zap.NewExample()
+		lg = zap.NewNop()
 	}
 	cfg := &Config{
 		Endpoint: winrm.Endpoint{

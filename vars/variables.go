@@ -23,10 +23,39 @@ type VariableManager struct {
 	loader    *parser.DataLoader
 	inventory *inv.Manager
 
-	variables map[string]string
+	groupVariables map[string]map[string]string
+	hostVariables  map[string]map[string]string
 }
 
 func NewVariablesManager(loader *parser.DataLoader, inventory *inv.Manager) *VariableManager {
-	vm := &VariableManager{loader: loader, inventory: inventory}
+	groupVariables := map[string]map[string]string{}
+	for name, group := range loader.Groups {
+		groupVariables[name] = group.Vars
+	}
+
+	hostVariables := map[string]map[string]string{}
+	for name, host := range loader.Hosts {
+		hostVariables[name] = host.Vars
+	}
+
+	vm := &VariableManager{
+		loader:         loader,
+		inventory:      inventory,
+		groupVariables: groupVariables,
+		hostVariables:  hostVariables,
+	}
+
 	return vm
+}
+
+func (vm *VariableManager) MustGetHostDefaultValue(host, name, defaultV string) string {
+	hv, ok := vm.hostVariables[host]
+	if !ok {
+		return defaultV
+	}
+	value, ok := hv[name]
+	if !ok {
+		return defaultV
+	}
+	return value
 }

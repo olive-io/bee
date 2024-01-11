@@ -18,6 +18,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -177,11 +178,8 @@ func (c *Client) Put(ctx context.Context, src, dst string, opts ...client.PutOpt
 
 	var ee error
 	if stat.IsDir() {
-		rstat, e1 := sfc.Stat(dst)
-		if e1 != nil {
-			return e1
-		}
-		if !rstat.IsDir() {
+		rstat, _ := sfc.Stat(dst)
+		if rstat != nil && !rstat.IsDir() {
 			return errors.Wrap(client.ErrAlreadyExists, dst)
 		}
 
@@ -203,9 +201,13 @@ func (c *Client) Put(ctx context.Context, src, dst string, opts ...client.PutOpt
 		})
 
 	} else {
-		rstat, _ := sfc.Stat(dst)
-		if rstat != nil && rstat.IsDir() {
-			dst = filepath.Join(src, filepath.Base(src))
+		if options.Mkdir {
+			_ = sfc.MkdirAll(path.Dir(dst))
+		} else {
+			rstat, _ := sfc.Stat(dst)
+			if rstat != nil && rstat.IsDir() {
+				dst = filepath.Join(src, filepath.Base(src))
+			}
 		}
 
 		_, ee = put(ctx, sfc, src, dst, buf, options.Trace)

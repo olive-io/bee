@@ -12,18 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
-
-import (
-	"github.com/spf13/cobra"
-)
-
-func main() {
-	root := &cobra.Command{
-		Use: "bee",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
-		},
-	}
-	root.Execute()
-}
+package plugins

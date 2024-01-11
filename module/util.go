@@ -13,3 +13,30 @@
 // limitations under the License.
 
 package module
+
+import (
+	"context"
+
+	"github.com/cockroachdb/errors"
+)
+
+func checkRepl(goos string, r Repl) (repl string, err error) {
+	repl = string(r)
+	if (goos == "windows" && r == Bash) ||
+		(goos == "linux" && r == Powershell) {
+		err = errors.Wrapf(ErrConflict, "exec %s in %s", r, goos)
+	}
+	if goos == "windows" {
+		repl += ".exe"
+	}
+	return
+}
+
+func CtxValueDefault(ctx context.Context, key, defaultVal string) string {
+	value := ctx.Value(key)
+	vv, _ := value.(string)
+	if vv == "" {
+		vv = defaultVal
+	}
+	return vv
+}

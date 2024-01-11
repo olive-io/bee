@@ -184,6 +184,9 @@ func reflectApplyMap(vv reflect.Value, to any) (ok bool, err error) {
 }
 
 func parseTaskArgs(s string) map[string]string {
+	if strings.TrimSpace(s) == "" {
+		return map[string]string{}
+	}
 	parts := strings.Split(s, " ")
 	args := make(map[string]string)
 	for _, part := range parts {

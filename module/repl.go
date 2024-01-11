@@ -12,6 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-fmt = import("fmt")
+package module
 
-fmt.println(`{"data": "pong", "changed": "false"}`)
+import "strings"
+
+// Repl the kind of interpreter
+type Repl string
+
+const (
+	Unknown    Repl = ""
+	Tengo      Repl = "tengo"
+	Bash       Repl = "bash"
+	Powershell Repl = "powershell"
+)
+
+var ks = map[Repl][]string{
+	Tengo:      []string{".tengo"},
+	Bash:       []string{".bash", ".sh"},
+	Powershell: []string{".ps", ".bat"},
+}
+
+func KnownExt(ext string) (Repl, bool) {
+	for kind, exts := range ks {
+		for _, item := range exts {
+			if strings.HasSuffix(ext, item) {
+				return kind, true
+			}
+		}
+	}
+	return Unknown, false
+}

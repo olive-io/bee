@@ -12,18 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package tengo
 
-import (
-	"github.com/spf13/cobra"
-)
-
-func main() {
-	root := &cobra.Command{
-		Use: "bee",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
-		},
-	}
-	root.Execute()
+type TengoV struct {
+	Version   string `json:"version"`
+	GoVersion string `json:"go-version"`
+	Goos      string `json:"os"`
+	Platform  string `json:"platform"`
 }

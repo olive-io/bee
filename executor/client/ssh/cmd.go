@@ -35,7 +35,7 @@ type Cmd struct {
 }
 
 func (c *Cmd) shell() string {
-	return c.name + strings.Join(c.args, " ")
+	return c.name + " " + strings.Join(c.args, " ")
 }
 
 func (c *Cmd) Session() *ssh.Session {

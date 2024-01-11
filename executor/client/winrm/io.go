@@ -92,7 +92,7 @@ func doCopy(ctx context.Context, lg *zap.Logger, cc *winrm.Client, in *os.File, 
 	}
 	err := uploadContent(ctx, lg, cc, 0, "%TEMP%\\"+tempFile, in, trace, fn)
 	if err != nil {
-		return errors.Errorf("error uploading file to %s", tempPath)
+		return errors.Wrapf(err, "uploading file to %s", tempPath)
 	}
 
 	err = restoreContent(ctx, lg, cc, tempPath, toPath)
@@ -167,7 +167,7 @@ func uploadChunks(
 		}
 
 		content := base64.StdEncoding.EncodeToString(chunk[:n])
-		if err = appendContent(ctx, lg, shell, filePath, content); err != nil {
+		if err = appendContent(ctx, shell, filePath, content); err != nil {
 			return false, err
 		}
 	}
@@ -285,13 +285,11 @@ func cleanupContent(ctx context.Context, lg *zap.Logger, cc *winrm.Client, fileP
 	return nil
 }
 
-func appendContent(ctx context.Context, lg *zap.Logger, shell *winrm.Shell, filePath, content string) error {
+func appendContent(ctx context.Context, shell *winrm.Shell, filePath, content string) error {
 	cmd, err := shell.ExecuteWithContext(ctx, fmt.Sprintf(`echo %s >> %s`, content, filePath))
 	if err != nil {
 		return err
 	}
-
-	lg.Debug("append file", zap.String("path", filePath))
 
 	defer cmd.Close()
 	var wg sync.WaitGroup

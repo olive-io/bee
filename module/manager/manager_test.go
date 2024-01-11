@@ -12,53 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package secret_test
+package manager_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	"github.com/olive-io/bee/secret"
-	testdb "github.com/olive-io/bee/test/db"
+	"github.com/olive-io/bee/module/manager"
 )
 
-func newPM(t *testing.T) (*secret.PasswordManager, func()) {
-	dir, err := os.MkdirTemp("", "*foo")
+func initData(t *testing.T, dir string) (string, func()) {
+	temp := filepath.Join(os.TempDir(), dir)
+	err := os.MkdirAll(temp, os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	lg := zap.NewExample()
-	db, err := testdb.NewDB(lg, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pm := secret.NewPasswordManager(lg, db)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_ = os.MkdirAll(filepath.Join(temp, "repl"), 0o644)
 	cancel := func() {
-		_ = db.Close()
-		_ = os.RemoveAll(dir)
+		_ = os.RemoveAll(temp)
 	}
-	return pm, cancel
+	return temp, cancel
 }
 
-func Test_PasswordManager(t *testing.T) {
-	pm, cancel := newPM(t)
+func Test_ModuleManager(t *testing.T) {
+	dir, cancel := initData(t, ".bee")
 	defer cancel()
 
-	err := pm.SetPassword("web1", "password", secret.WithNamespace("ssh"))
+	mg, err := manager.NewModuleManager(zap.NewExample(), dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	value, err := pm.GetRawPassword("web1", secret.WithNamespace("ssh"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, "password", value)
+	m, ok := mg.Find("ping")
+	assert.Equal(t, true, ok)
+	assert.Equal(t, "bee.builtin.ping", m.Name)
 }

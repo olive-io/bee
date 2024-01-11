@@ -17,17 +17,20 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/d5/tengo/v2"
 	"github.com/d5/tengo/v2/parser"
 	"github.com/d5/tengo/v2/stdlib"
+
+	bt "github.com/olive-io/bee/tengo"
 )
 
 const (
@@ -57,7 +60,7 @@ func main() {
 		doHelp()
 		os.Exit(2)
 	} else if showVersion {
-		fmt.Println(version)
+		printVersion()
 		return
 	}
 
@@ -69,7 +72,7 @@ func main() {
 		return
 	}
 
-	inputData, err := ioutil.ReadFile(inputFile)
+	inputData, err := os.ReadFile(inputFile)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr,
 			"Error reading input file: %s\n", err.Error())
@@ -336,4 +339,15 @@ func basename(s string) string {
 		return s[:n]
 	}
 	return s
+}
+
+func printVersion() {
+	tv := &bt.TengoV{
+		Version:   version,
+		GoVersion: runtime.Version(),
+		Goos:      runtime.GOOS,
+		Platform:  runtime.GOARCH,
+	}
+	data, _ := json.Marshal(tv)
+	fmt.Fprintf(os.Stdout, string(data))
 }

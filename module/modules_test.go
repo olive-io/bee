@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package module
+package module_test
 
 import (
 	"os"
@@ -21,9 +21,11 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/olive-io/bee/module"
 )
 
-const tmp = `name: "ping"
+const tmp = `name: "my_ping"
 long: "a long text for description"
 script: "ping.tengo"
 authors:
@@ -81,17 +83,17 @@ func initDir(t *testing.T, dir string) (string, func()) {
 func TestLoadDir(t *testing.T) {
 	dir, cancel := initDir(t, "foo")
 	defer cancel()
-	m, err := LoadDir(dir)
+	m, err := module.LoadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, m.Name, "ping")
+	assert.Equal(t, m.Name, "my_ping")
 }
 
 func TestModule_Execute(t *testing.T) {
 	dir, cancel := initDir(t, "foo")
 	defer cancel()
-	m, err := LoadDir(dir)
+	m, err := module.LoadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +101,7 @@ func TestModule_Execute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, c.Name, "ping")
+	assert.Equal(t, c.Name, "my_ping")
 	flags := c.Flags()
 	ip, _ := flags.GetString("ip")
 	assert.Equal(t, ip, "10.0.0.100")

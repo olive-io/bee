@@ -24,6 +24,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/cockroachdb/errors"
+
 	pb "github.com/olive-io/bee/api/rpc"
 	"github.com/olive-io/bee/api/rpctype"
 )
@@ -178,6 +180,10 @@ func (s *Server) save(req *pb.PutRequest, fw *os.File) error {
 	if fw == nil || fw.Name() != req.Name {
 		if fw != nil {
 			_ = fw.Close()
+		}
+		dir := filepath.Dir(req.Name)
+		if _, e1 := os.Stat(dir); errors.Is(e1, os.ErrNotExist) {
+			_ = os.MkdirAll(dir, 0755)
 		}
 		fw, err = os.Create(req.Name)
 		if err != nil {

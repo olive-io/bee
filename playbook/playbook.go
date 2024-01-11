@@ -166,8 +166,17 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 			continue
 		}
 		t.Module = key
-		if vs, ok := value.(string); ok && len(strings.TrimSpace(vs)) != 0 {
+		if vs, ok := value.(string); ok {
 			t.Args = parseTaskArgs(vs)
+		}
+		if ykv, ok := value.(YamlKV); ok {
+			t.Args = map[string]string{}
+			for yk, yv := range ykv {
+				v0, _ := yv.(string)
+				if v0 != "" {
+					t.Args[yk] = v0
+				}
+			}
 		}
 	}
 	return

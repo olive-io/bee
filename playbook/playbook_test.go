@@ -32,7 +32,9 @@ func TestPlayBook_UnmarshalYAML(t *testing.T) {
   - name: ensure apache is at the latest version
     yum: pkg=httpd state=latest
   - name: write the apache config file
-    template: src=/srv/httpd.j2 dest=/etc/httpd.conf
+    template:
+      src: /srv/httpd.j2
+      dest: /etc/httpd.conf
     notify:
     - restart apache
   - name: ensure apache is running

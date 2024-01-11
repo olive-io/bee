@@ -73,7 +73,7 @@ func TestWinRM_Execute(t *testing.T) {
 	wr.Close()
 
 	ctx := context.Background()
-	cmd, err := wr.Execute(ctx, "cmd", client.ExecWithArgs([]string{"/C", "ipconfig", "/all"}))
+	cmd, err := wr.Execute(ctx, "cmd", client.ExecWithArgs("/C", "ipconfig", "/all"))
 	if !assert.NoError(t, err) {
 		return
 	}

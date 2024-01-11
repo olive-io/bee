@@ -12,32 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executor
+package bee
 
-const (
-	connectVars   = "bee_connect"
-	hostVars      = "bee_host"
-	portVars      = "bee_part"
-	userVars      = "bee_user"
-	sshPasswdVars = "bee_ssh_passwd"
-	sshPrivateKey = "bee_ssh_private_key"
-	sshPassphrase = "bee_ssh_passphrase"
+import "go.uber.org/zap"
 
-	winRMPasswdVars = "bee_winrm_passwd"
-)
+func BuildLogger() (*zap.Logger, error) {
+	lg := zap.NewExample()
+	return lg, nil
+}
 
-//type connectVars struct {
-//	User   string
-//	Passwd string
-//}
-//
-//type WinRVars struct {
-//	RemoteUser string
-//}
-//
-//type GRPCVars struct {
-//}
-//
-//func getSSHVars(host *parser.Host) *SSHVars {
-//
-//}
+type antsLogger struct {
+	lg *zap.Logger
+}
+
+func (l *antsLogger) Printf(format string, args ...any) {
+	l.lg.With(zap.String("pkg", "ants")).Sugar().Debugf(format, args)
+}

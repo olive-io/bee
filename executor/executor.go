@@ -24,6 +24,7 @@ import (
 	"github.com/olive-io/bee/executor/client"
 	inv "github.com/olive-io/bee/inventory"
 	"github.com/olive-io/bee/secret"
+	"github.com/olive-io/bee/vars"
 )
 
 var (
@@ -51,6 +52,18 @@ func NewExecutor(lg *zap.Logger, inventory *inv.Manager, passwords *secret.Passw
 	return executor
 }
 
+// LoadSources builds the given source client.IClient, if the client.IClient already built, do nothing
+func (e *Executor) LoadSources(sources ...string) error {
+	var errs []error
+	for _, source := range sources {
+		_, err := e.GetClient(source)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return multierr.Combine(errs...)
+}
+
 func (e *Executor) GetClient(name string) (client.IClient, error) {
 	e.cmu.RLock()
 	cc, ok := e.clients[name]
@@ -76,7 +89,7 @@ func (e *Executor) newClient(name string) (client.IClient, error) {
 		return nil, ErrHostNotExists
 	}
 
-	kind := host.Vars[connectVars]
+	kind := host.Vars[vars.BeeConnectVars]
 	if kind == "" {
 		kind = client.SSHClient
 	} else {

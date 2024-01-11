@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package builtin
+package internal
 
 import (
 	"embed"
-
-	"github.com/olive-io/bee/module"
 )
 
-//go:embed ping.tengo
+//go:embed builtin/*/*.tengo
 var fs embed.FS
 
-var Modules = map[string]*module.Module{
-	"ping": pingModule,
+func ReadFile(name string) ([]byte, error) {
+	return fs.ReadFile(name)
 }

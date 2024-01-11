@@ -12,37 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executor
-
-import "strings"
-
-// Kind the kind of Interpreter
-type Kind string
+package vars
 
 const (
-	Unknown    Kind = ""
-	Tengo      Kind = "tengo"
-	Bash       Kind = "bash"
-	Powershell Kind = "powershell"
+	BeeConnectVars       = "bee_connect"
+	BeeHostVars          = "bee_host"
+	BeePortVars          = "bee_part"
+	BeeUserVars          = "bee_user"
+	BeeSSHPasswdVars     = "bee_ssh_passwd"
+	BeeSSHPrivateKeyVars = "bee_ssh_private_key"
+	BeeSSHPassphraseVars = "bee_ssh_passphrase"
+
+	BeeWMPasswdVars = "bee_winrm_passwd"
+
+	BeePlatformVars = "bee_platform"
+	BeeArchVars     = "bee_architecture"
+	BeeHome         = "bee_home"
 )
-
-var ks = map[Kind][]string{
-	Tengo:      []string{".tengo"},
-	Bash:       []string{".bash", ".sh"},
-	Powershell: []string{".ps", ".bat"},
-}
-
-func KnownExt(ext string) (Kind, bool) {
-	for kind, exts := range ks {
-		for _, item := range exts {
-			if strings.HasSuffix(ext, item) {
-				return kind, true
-			}
-		}
-	}
-	return Unknown, false
-}
-
-type Interpreter interface {
-	Kind() Kind
-}

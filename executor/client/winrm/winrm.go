@@ -28,7 +28,7 @@ import (
 )
 
 type WinRM struct {
-	cfg Config
+	Config
 
 	cc *winrm.Client
 }
@@ -41,7 +41,7 @@ func NewWinRM(cfg Config) (*WinRM, error) {
 
 	lg := cfg.Logger
 	wr := &WinRM{
-		cfg: cfg,
+		Config: cfg,
 	}
 	lg.Debug("connect to remote windows",
 		zap.String("host", cfg.Host),
@@ -56,7 +56,7 @@ func NewWinRM(cfg Config) (*WinRM, error) {
 }
 
 func (wr *WinRM) dial() (*winrm.Client, error) {
-	cfg := wr.cfg
+	cfg := wr.Config
 	cc, err := winrm.NewClient(&cfg.Endpoint, cfg.Username, cfg.Password)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (wr *WinRM) get(ctx context.Context, remotePath, localPath string, buf []by
 	}
 	defer writer.Close()
 
-	return readContent(ctx, wr.cfg.Logger, wr.cc, remotePath, writer, buf, fn)
+	return readContent(ctx, wr.Logger, wr.cc, remotePath, writer, buf, fn)
 }
 
 func (wr *WinRM) walker(ctx context.Context, items []os.FileInfo, root, local string, buf []byte, fn client.IOTraceFn) error {
@@ -194,6 +194,7 @@ func (wr *WinRM) Copy(ctx context.Context, fromPath, toPath string, fn client.IO
 	} else {
 		fw := fileWalker{
 			ctx:     ctx,
+			lg:      wr.Logger,
 			cc:      wr.cc,
 			toDir:   toPath,
 			fromDir: fromPath,
@@ -204,7 +205,7 @@ func (wr *WinRM) Copy(ctx context.Context, fromPath, toPath string, fn client.IO
 }
 
 func (wr *WinRM) Write(ctx context.Context, toPath string, src *os.File, fn client.IOTraceFn) error {
-	return doCopy(ctx, wr.cfg.Logger, wr.cc, src, winPath(toPath), fn)
+	return doCopy(ctx, wr.Logger, wr.cc, src, winPath(toPath), fn)
 }
 
 func (wr *WinRM) Close() error {

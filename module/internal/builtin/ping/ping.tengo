@@ -12,19 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package module
+fmt := import("fmt")
 
-type Manager struct {
-	modules map[string]*Module
-}
-
-func NewModuleManager() *Manager {
-	mg := &Manager{
-		modules: map[string]*Module{},
-	}
-	return mg
-}
-
-func (mg *Manager) LoadModule(name string, m *Module) {
-	mg.modules[name] = m
-}
+fmt.println(`{"data": "pong", "changed": "false"}`)

@@ -25,44 +25,29 @@ import (
 )
 
 const (
-	defaultPrefix    = "_bee"
-	DefaultCacheSize = 1024 * 1024 * 10
+	defaultPrefix = "_bee"
 )
 
 var (
 	ErrNotFound    = errors.New("key not found")
 	ErrDBOperation = errors.New("failed to operate db")
-
-	defaultSplit pebble.Split = func(a []byte) int {
-		return 1
-	}
 )
 
 type PasswordManager struct {
+	lg *zap.Logger
 	db *pebble.DB
 }
 
-func NewPasswordManager(lg *zap.Logger, dir string) (*PasswordManager, error) {
-	cache := pebble.NewCache(DefaultCacheSize)
-	comparer := pebble.DefaultComparer
-	comparer.Split = defaultSplit
-	plg := lg.
-		WithOptions(zap.Fields(zap.String("pkg", "pebble"))).
-		Sugar()
-	options := &pebble.Options{
-		Cache:    cache,
-		Comparer: comparer,
-		Logger:   plg,
-	}
-	db, err := pebble.Open(dir, options)
-	if err != nil {
-		return nil, err
+func NewPasswordManager(lg *zap.Logger, db *pebble.DB) *PasswordManager {
+	if lg == nil {
+		lg = zap.NewNop()
 	}
 
 	pm := &PasswordManager{
+		lg: lg,
 		db: db,
 	}
-	return pm, nil
+	return pm
 }
 
 func (pm *PasswordManager) GetRawPassword(name string, opts ...OpOption) (string, error) {
@@ -116,13 +101,6 @@ func (pm *PasswordManager) SetPassword(name, password string, opts ...OpOption) 
 func (pm *PasswordManager) writeOptions() *pebble.WriteOptions {
 	wo := &pebble.WriteOptions{Sync: true}
 	return wo
-}
-
-func (pm *PasswordManager) Close() error {
-	if err := pm.db.Close(); err != nil {
-		return parseErr(err)
-	}
-	return nil
 }
 
 func parseErr(err error) error {
