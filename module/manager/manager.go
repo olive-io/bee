@@ -15,7 +15,6 @@
 package manager
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path"
@@ -27,7 +26,6 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
-	"github.com/olive-io/bee/executor/client"
 	"github.com/olive-io/bee/module"
 	"github.com/olive-io/bee/module/internal/builtin"
 )
@@ -86,6 +84,18 @@ func NewModuleManager(lg *zap.Logger, dir string) (*Manager, error) {
 	return mg, nil
 }
 
+func (mg *Manager) RootDir() string {
+	return mg.dir
+}
+
+func (mg *Manager) ModuleDirs() []string {
+	dirs := make([]string, len(mg.moduleDirs))
+	for i, dir := range mg.moduleDirs {
+		dirs[i] = dir
+	}
+	return dirs
+}
+
 func (mg *Manager) LoadModule(m *module.Module) {
 	mg.modules[m.Name] = m
 }
@@ -138,11 +148,14 @@ func (mg *Manager) validDir(dir string) bool {
 
 // Find returns the *Module by name
 func (mg *Manager) Find(name string) (*module.Module, bool) {
-	if !strings.Contains(name, ".") {
-		name = "bee.builtin." + name
-	}
-
 	m, ok := mg.modules[name]
+	if !ok {
+		if !strings.Contains(name, ".") {
+			name = "bee.builtin." + name
+			return mg.Find(name)
+		}
+		return nil, false
+	}
 	return m, ok
 }
 
@@ -186,30 +199,5 @@ func (mg *Manager) writeCommand(cmd *module.Command, root string) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func (mg *Manager) SyncRemote(ctx context.Context, conn client.IClient, putOptions *client.PutOptions) error {
-	lg := mg.lg
-	home := module.CtxValueDefault(putOptions.Context, module.HomeKey, ".bee")
-	goos := module.CtxValueDefault(putOptions.Context, module.OsKey, "linux")
-
-	for _, dir := range mg.moduleDirs {
-		localDir := dir
-		remoteDir := path.Join(home, "modules", strings.TrimPrefix(dir, mg.dir))
-		if goos == "windows" {
-			remoteDir = strings.ReplaceAll(remoteDir, "/", "\\")
-		}
-		rs, _ := conn.Stat(ctx, remoteDir)
-		if rs != nil {
-			continue
-		}
-		lg.Debug("put bee module", zap.String("local", localDir), zap.String("remote", remoteDir))
-		err := conn.Put(ctx, localDir, remoteDir, client.PutWithDir(true))
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

@@ -16,23 +16,9 @@ package module
 
 import (
 	"context"
-	"path"
-	"strings"
 
-	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
-	"github.com/olive-io/bee/executor/client"
-)
-
-var (
-	ErrConflict = errors.New("runtime conflict")
-)
-
-const (
-	HomeKey = "beeHome"
-	OsKey   = "goos"
 )
 
 type Command struct {
@@ -82,63 +68,4 @@ func (c *Command) ParseCmd() *cobra.Command {
 
 func (c *Command) Flags() *pflag.FlagSet {
 	return c.cobra.PersistentFlags()
-}
-
-func (c *Command) CombinedOutput(ctx context.Context, conn client.IClient, opts ...client.ExecOption) ([]byte, error) {
-	execOptions := client.NewExecOptions()
-	for _, opt := range opts {
-		opt(execOptions)
-	}
-
-	c.Flags().VisitAll(func(flag *pflag.Flag) {
-		arg := "--" + flag.Name + "=" + flag.Value.String()
-		execOptions.Args = append(execOptions.Args, arg)
-	})
-
-	options := make([]client.ExecOption, 0)
-	ext, ok := KnownExt(path.Ext(c.Script))
-	if !ok {
-		ext = Tengo
-	}
-
-	home := CtxValueDefault(execOptions.Context, HomeKey, ".bee")
-	goos := CtxValueDefault(execOptions.Context, OsKey, "linux")
-
-	var repl string
-	var err error
-	if repl, err = checkRepl(goos, ext); err != nil {
-		return nil, err
-	}
-
-	script := path.Join(home, "modules", c.Script)
-	if goos == "windows" {
-		script = strings.ReplaceAll(script, "/", "\\")
-	}
-
-	switch ext {
-	case Tengo:
-		repl = path.Join(home, "bin", repl)
-		if goos == "windows" {
-			repl = strings.ReplaceAll(repl, "/", "\\")
-		}
-	case Bash:
-		options = append(options, client.ExecWithArgs("-c"))
-	case Powershell:
-	}
-
-	options = append(options, client.ExecWithArgs(script))
-	options = append(options, client.ExecWithArgs(execOptions.Args...))
-	for key, value := range execOptions.Environments {
-		options = append(options, client.ExecWithEnv(key, value))
-	}
-
-	cmd, err := conn.Execute(ctx, repl, options...)
-	if err != nil {
-		return nil, err
-	}
-	data, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, errors.Wrap(err, string(data))
-	}
-	return data, nil
 }

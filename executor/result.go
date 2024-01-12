@@ -12,31 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package module
+package executor
 
-import (
-	"context"
-
-	"github.com/cockroachdb/errors"
-)
-
-func checkRepl(goos string, r Repl) (repl string, err error) {
-	repl = string(r)
-	if (goos == "windows" && r == Bash) ||
-		(goos == "linux" && r == Powershell) {
-		err = errors.Wrapf(ErrConflict, "exec %s in %s", r, goos)
-	}
-	if goos == "windows" {
-		repl += ".exe"
-	}
-	return
+type TaskResult struct {
+	Host   string      `json:"host"`
+	Stdout *TaskStdout `json:"stdout"`
+	ErrMsg string      `json:"err_msg"`
 }
 
-func CtxValueDefault(ctx context.Context, key, defaultVal string) string {
-	value := ctx.Value(key)
-	vv, _ := value.(string)
-	if vv == "" {
-		vv = defaultVal
-	}
-	return vv
+type TaskStdout struct {
+	Changed bool `json:"changed"`
 }
