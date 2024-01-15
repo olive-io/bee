@@ -235,19 +235,14 @@ func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunO
 		return nil, err
 	}
 
-	putOptions := client.NewPutOptions()
-	putOptions.Dir = true
-	mctx := context.WithValue(ctx, HomeKey, home)
-	mctx = context.WithValue(mctx, OsKey, goos)
-	putOptions.Context = mctx
-	if err = rt.syncModules(ctx, conn, putOptions); err != nil {
+	if err = rt.syncModules(ctx, host, conn); err != nil {
 		return nil, err
 	}
 
 	execOptions := make([]client.ExecOption, 0)
 	execOptions = append(execOptions, client.ExecWithValue(HomeKey, home))
 	execOptions = append(execOptions, client.ExecWithValue(OsKey, goos))
-	return rt.runCommand(ctx, cmd, conn, execOptions...)
+	return rt.runE(ctx, cmd, conn, execOptions...)
 }
 
 func (rt *Runtime) syncRepl(ctx context.Context, host string, conn client.IClient) error {
@@ -290,13 +285,13 @@ func (rt *Runtime) syncRepl(ctx context.Context, host string, conn client.IClien
 	return conn.Put(ctx, toolchain, repl, client.PutWithMkdir(true))
 }
 
-func (rt *Runtime) syncModules(ctx context.Context, conn client.IClient, putOptions *client.PutOptions) error {
+func (rt *Runtime) syncModules(ctx context.Context, host string, conn client.IClient) error {
 	root := rt.modules.RootDir()
 	dirs := rt.modules.ModuleDirs()
 
 	lg := rt.Logger()
-	home := CtxValueDefault(putOptions.Context, HomeKey, ".bee")
-	goos := CtxValueDefault(putOptions.Context, OsKey, "linux")
+	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, ".bee")
+	goos := rt.variables.MustGetHostDefaultValue(host, vars.BeePlatformVars, "linux")
 
 	for _, dir := range dirs {
 		localDir := dir
@@ -318,7 +313,7 @@ func (rt *Runtime) syncModules(ctx context.Context, conn client.IClient, putOpti
 	return nil
 }
 
-func (rt *Runtime) runCommand(ctx context.Context, command *module.Command, conn client.IClient, opts ...client.ExecOption) ([]byte, error) {
+func (rt *Runtime) runE(ctx context.Context, command *module.Command, conn client.IClient, opts ...client.ExecOption) ([]byte, error) {
 	execOptions := client.NewExecOptions()
 	for _, opt := range opts {
 		opt(execOptions)

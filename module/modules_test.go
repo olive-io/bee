@@ -55,7 +55,6 @@ commands:
     script: "sub.tengo"
     authors:
       - John, Jonh@gmail.com
-      -
     examples: |
 
     params:

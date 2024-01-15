@@ -185,7 +185,7 @@ func (mg *Manager) writeCommand(cmd *module.Command, root string) error {
 		return nil
 	}
 	dir := path.Dir(cmd.Script)
-	_ = os.MkdirAll(dir, 0o644)
+	_ = os.MkdirAll(dir, 0644)
 	data, ok := cmd.ScriptsData[cmd.Script]
 	if ok {
 		script := filepath.Join(root, cmd.Script)
