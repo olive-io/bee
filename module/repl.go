@@ -12,40 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bee
+package module
 
-import (
-	"context"
+import "strings"
 
-	"github.com/cockroachdb/errors"
-)
-
-var (
-	ErrConflict = errors.New("runtime conflict")
-)
+// Repl the kind of interpreter
+type Repl string
 
 const (
-	HomeKey = "beeHome"
-	OsKey   = "goos"
+	Unknown    Repl = ""
+	Tengo      Repl = "tengo"
+	Bash       Repl = "bash"
+	Powershell Repl = "powershell"
 )
 
-func checkRepl(goos string, r Repl) (repl string, err error) {
-	repl = string(r)
-	if (goos == "windows" && r == Bash) ||
-		(goos == "linux" && r == Powershell) {
-		err = errors.Wrapf(ErrConflict, "exec %s in %s", r, goos)
-	}
-	if goos == "windows" {
-		repl += ".exe"
-	}
-	return
+var ks = map[Repl][]string{
+	Tengo:      []string{".tengo"},
+	Bash:       []string{".bash", ".sh"},
+	Powershell: []string{".ps", ".bat"},
 }
 
-func CtxValueDefault(ctx context.Context, key, defaultVal string) string {
-	value := ctx.Value(key)
-	vv, _ := value.(string)
-	if vv == "" {
-		vv = defaultVal
+func KnownExt(ext string) (Repl, bool) {
+	for kind, exts := range ks {
+		for _, item := range exts {
+			if strings.HasSuffix(ext, item) {
+				return kind, true
+			}
+		}
 	}
-	return vv
+	return Unknown, false
 }

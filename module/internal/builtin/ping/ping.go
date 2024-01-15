@@ -43,6 +43,8 @@ var PingModule = &module.Module{
 				Default: "pong",
 			},
 		},
+
+		Run: module.DefaultRunCommand,
 	},
 	Dir: "builtin/ping",
 }

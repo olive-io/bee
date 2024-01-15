@@ -81,6 +81,7 @@ func readYML(dir string) (*Command, error) {
 	if err != nil {
 		return nil, err
 	}
+	c.Run = DefaultRunCommand
 
 	if err = validateScript(c, dir); err != nil {
 		return nil, err

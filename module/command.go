@@ -16,10 +16,49 @@ package module
 
 import (
 	"context"
+	"fmt"
+	"path"
+	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"go.uber.org/zap"
+
+	"github.com/olive-io/bee/executor/client"
+	"github.com/olive-io/bee/vars"
 )
+
+type StableMap[T any] struct {
+	store map[string]T
+}
+
+func NewVariables() *StableMap[string] {
+	return &StableMap[string]{store: map[string]string{}}
+}
+
+func (sm *StableMap[T]) Set(key string, value T) {
+	sm.store[key] = value
+}
+
+func (sm *StableMap[T]) GetDefault(key string, defaultV T) T {
+	v, ok := sm.store[key]
+	if !ok {
+		return defaultV
+	}
+	return v
+}
+
+type RunContext struct {
+	context.Context
+
+	Logger    *zap.Logger
+	Cmd       *Command
+	Conn      client.IClient
+	Variables *StableMap[string]
+}
+
+type RunE func(ctx *RunContext, options ...client.ExecOption) ([]byte, error)
 
 type Command struct {
 	Name        string            `yaml:"name"`
@@ -33,6 +72,24 @@ type Command struct {
 	Commands    []*Command        `yaml:"commands"`
 	ScriptsData map[string][]byte `yaml:"-"`
 	cobra       *cobra.Command    `yaml:"-"`
+
+	// runnable
+	cacheVars map[string]string `yaml:"-"`
+
+	PreRun  RunE `yaml:"-"`
+	Run     RunE `yaml:"-"`
+	PostRun RunE `yaml:"-"`
+}
+
+func (c *Command) NewContext(ctx context.Context, lg *zap.Logger, conn client.IClient, variables *StableMap[string]) *RunContext {
+	rctx := &RunContext{
+		Context:   ctx,
+		Logger:    lg,
+		Cmd:       c,
+		Conn:      conn,
+		Variables: variables,
+	}
+	return rctx
 }
 
 func (c *Command) Runnable() bool {
@@ -40,6 +97,10 @@ func (c *Command) Runnable() bool {
 }
 
 func (c *Command) ParseCmd() *cobra.Command {
+	if c.cobra != nil {
+		return c.cobra
+	}
+
 	cmd := &cobra.Command{
 		Use:           c.Name,
 		Long:          c.Long,
@@ -68,4 +129,68 @@ func (c *Command) ParseCmd() *cobra.Command {
 
 func (c *Command) Flags() *pflag.FlagSet {
 	return c.cobra.PersistentFlags()
+}
+
+var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([]byte, error) {
+	command := ctx.Cmd
+	lg := ctx.Logger
+	conn := ctx.Conn
+	execOptions := client.NewExecOptions()
+	for _, opt := range opts {
+		opt(execOptions)
+	}
+
+	command.Flags().VisitAll(func(flag *pflag.Flag) {
+		arg := "--" + flag.Name + "=" + flag.Value.String()
+		execOptions.Args = append(execOptions.Args, arg)
+	})
+
+	options := make([]client.ExecOption, 0)
+	ext, ok := KnownExt(path.Ext(command.Script))
+	if !ok {
+		ext = Tengo
+	}
+
+	home := ctx.Variables.GetDefault(vars.BeeHome, ".bee")
+	goos := ctx.Variables.GetDefault(vars.BeePlatformVars, "linux")
+
+	var repl string
+	var err error
+	if repl, err = checkRepl(goos, ext); err != nil {
+		return nil, err
+	}
+
+	script := path.Join(home, "modules", command.Script)
+	if goos == "windows" {
+		script = strings.ReplaceAll(script, "/", "\\")
+	}
+
+	switch ext {
+	case Tengo:
+		repl = path.Join(home, "bin", repl)
+		if goos == "windows" {
+			repl = strings.ReplaceAll(repl, "/", "\\")
+		}
+	case Bash:
+		options = append(options, client.ExecWithArgs("-c"))
+	case Powershell:
+	}
+
+	options = append(options, client.ExecWithArgs(script))
+	options = append(options, client.ExecWithArgs(execOptions.Args...))
+	for key, value := range execOptions.Environments {
+		options = append(options, client.ExecWithEnv(key, value))
+	}
+
+	shell := fmt.Sprintf("%s %s %s", repl, script, strings.Join(execOptions.Args, " "))
+	lg.Debug("remote execute", zap.String("command", shell))
+	cmd, err := conn.Execute(ctx, repl, options...)
+	if err != nil {
+		return nil, err
+	}
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, errors.Wrap(err, string(beautify(data)))
+	}
+	return beautify(data), nil
 }

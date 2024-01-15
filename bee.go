@@ -15,9 +15,7 @@
 package bee
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -26,7 +24,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble"
 	"github.com/panjf2000/ants/v2"
-	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 
 	bexecutor "github.com/olive-io/bee/executor"
@@ -195,6 +192,7 @@ func (rt *Runtime) Logger() *zap.Logger {
 //}
 
 func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunOption) ([]byte, error) {
+	lg := rt.Logger()
 	options := newRunOptions()
 	for _, opt := range opts {
 		opt(options)
@@ -224,32 +222,48 @@ func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunO
 		return nil, errors.New("command can't be execute")
 	}
 
-	goos := rt.variables.MustGetHostDefaultValue(host, vars.BeePlatformVars, "linux")
-	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, ".bee")
 	conn, err := rt.executor.GetClient(host)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = rt.syncRepl(ctx, host, conn); err != nil {
+	sm := rt.applyStableMap(host)
+	if err = rt.syncRepl(ctx, conn, sm); err != nil {
 		return nil, err
 	}
 
-	if err = rt.syncModules(ctx, host, conn); err != nil {
+	if err = rt.syncModules(ctx, conn, sm); err != nil {
 		return nil, err
 	}
 
+	rctx := cmd.NewContext(ctx, lg, conn, sm)
 	execOptions := make([]client.ExecOption, 0)
-	execOptions = append(execOptions, client.ExecWithValue(HomeKey, home))
-	execOptions = append(execOptions, client.ExecWithValue(OsKey, goos))
-	return rt.runE(ctx, cmd, conn, execOptions...)
+
+	if cmd.PreRun != nil {
+		if _, err = cmd.PreRun(rctx, execOptions...); err != nil {
+			lg.Error("execute prepare command", zap.Error(err))
+		}
+	}
+	if cmd.Run == nil {
+		return nil, errors.New("command can not be executed")
+	}
+	out, err := cmd.Run(rctx, execOptions...)
+	if err != nil {
+		return nil, err
+	}
+	if cmd.PostRun != nil {
+		if _, err = cmd.PostRun(rctx, execOptions...); err != nil {
+			lg.Error("execute post command", zap.Error(err))
+		}
+	}
+	return out, err
 }
 
-func (rt *Runtime) syncRepl(ctx context.Context, host string, conn client.IClient) error {
+func (rt *Runtime) syncRepl(ctx context.Context, conn client.IClient, sm *module.StableMap[string]) error {
 	lg := rt.opts.logger
-	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, ".bee")
-	goos := rt.variables.MustGetHostDefaultValue(host, vars.BeePlatformVars, "linux")
-	arch := rt.variables.MustGetHostDefaultValue(host, vars.BeeArchVars, "amd64")
+	home := sm.GetDefault(vars.BeeHome, ".bee")
+	goos := sm.GetDefault(vars.BeePlatformVars, "linux")
+	arch := sm.GetDefault(vars.BeeArchVars, "amd64")
 
 	repl := path.Join(home, "bin", "tengo")
 	if goos == "windows" {
@@ -285,13 +299,13 @@ func (rt *Runtime) syncRepl(ctx context.Context, host string, conn client.IClien
 	return conn.Put(ctx, toolchain, repl, client.PutWithMkdir(true))
 }
 
-func (rt *Runtime) syncModules(ctx context.Context, host string, conn client.IClient) error {
+func (rt *Runtime) syncModules(ctx context.Context, conn client.IClient, sm *module.StableMap[string]) error {
 	root := rt.modules.RootDir()
 	dirs := rt.modules.ModuleDirs()
 
 	lg := rt.Logger()
-	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, ".bee")
-	goos := rt.variables.MustGetHostDefaultValue(host, vars.BeePlatformVars, "linux")
+	home := sm.GetDefault(vars.BeeHome, ".bee")
+	goos := sm.GetDefault(vars.BeePlatformVars, "linux")
 
 	for _, dir := range dirs {
 		localDir := dir
@@ -313,68 +327,6 @@ func (rt *Runtime) syncModules(ctx context.Context, host string, conn client.ICl
 	return nil
 }
 
-func (rt *Runtime) runE(ctx context.Context, command *module.Command, conn client.IClient, opts ...client.ExecOption) ([]byte, error) {
-	execOptions := client.NewExecOptions()
-	for _, opt := range opts {
-		opt(execOptions)
-	}
-
-	command.Flags().VisitAll(func(flag *pflag.Flag) {
-		arg := "--" + flag.Name + "=" + flag.Value.String()
-		execOptions.Args = append(execOptions.Args, arg)
-	})
-
-	options := make([]client.ExecOption, 0)
-	ext, ok := KnownExt(path.Ext(command.Script))
-	if !ok {
-		ext = Tengo
-	}
-
-	lg := rt.Logger()
-	home := CtxValueDefault(execOptions.Context, HomeKey, ".bee")
-	goos := CtxValueDefault(execOptions.Context, OsKey, "linux")
-
-	var repl string
-	var err error
-	if repl, err = checkRepl(goos, ext); err != nil {
-		return nil, err
-	}
-
-	script := path.Join(home, "modules", command.Script)
-	if goos == "windows" {
-		script = strings.ReplaceAll(script, "/", "\\")
-	}
-
-	switch ext {
-	case Tengo:
-		repl = path.Join(home, "bin", repl)
-		if goos == "windows" {
-			repl = strings.ReplaceAll(repl, "/", "\\")
-		}
-	case Bash:
-		options = append(options, client.ExecWithArgs("-c"))
-	case Powershell:
-	}
-
-	options = append(options, client.ExecWithArgs(script))
-	options = append(options, client.ExecWithArgs(execOptions.Args...))
-	for key, value := range execOptions.Environments {
-		options = append(options, client.ExecWithEnv(key, value))
-	}
-
-	shell := fmt.Sprintf("%s %s %s", repl, script, strings.Join(execOptions.Args, " "))
-	lg.Debug("remote execute", zap.String("command", shell))
-	cmd, err := conn.Execute(ctx, repl, options...)
-	if err != nil {
-		return nil, err
-	}
-	data, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, errors.Wrap(err, string(beautify(data)))
-	}
-	return beautify(data), nil
-}
-
 func (rt *Runtime) Stop() error {
 	rt.pool.Release()
 	if err := rt.db.Flush(); err != nil {
@@ -387,6 +339,13 @@ func (rt *Runtime) Stop() error {
 	return nil
 }
 
-func beautify(stdout []byte) []byte {
-	return bytes.TrimSuffix(stdout, []byte("\n"))
+func (rt *Runtime) applyStableMap(host string) *module.StableMap[string] {
+	sm := module.NewVariables()
+	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, ".bee")
+	sm.Set(vars.BeeHome, home)
+	goos := rt.variables.MustGetHostDefaultValue(host, vars.BeePlatformVars, "linux")
+	sm.Set(vars.BeePlatformVars, goos)
+	arch := rt.variables.MustGetHostDefaultValue(host, vars.BeeArchVars, "amd64")
+	sm.Set(vars.BeeArchVars, arch)
+	return sm
 }
