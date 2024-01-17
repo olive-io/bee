@@ -12,16 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-fmt := import("fmt")
-flag := import("flag")
-os := import("os")
+package trace
 
-data := flag.string("data", "pong", "when data is 'crash', the module will cause an error.")
-flag.parse()
+import (
+	"log/slog"
+)
 
-if data == "crash" {
-    fmt.println("cause error")
-    os.exit(1)
+func parseLevel(text string) (slog.Level, bool) {
+	var level slog.Level
+	switch text {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		return 0, false
+	}
+	return level, true
 }
-
-fmt.printf(`{"data": "%s", "changed": "false"}`, data)

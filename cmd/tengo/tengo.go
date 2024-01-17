@@ -31,6 +31,7 @@ import (
 	"github.com/d5/tengo/v2/stdlib"
 
 	bt "github.com/olive-io/bee/tengo"
+	"github.com/olive-io/bee/tengo/builtin"
 )
 
 const (
@@ -71,6 +72,7 @@ func main() {
 		RunREPL(modules, os.Stdin, os.Stdout)
 		return
 	}
+	modules.AddMap(builtin.BuiltinMap)
 
 	inputData, err := os.ReadFile(inputFile)
 	if err != nil {

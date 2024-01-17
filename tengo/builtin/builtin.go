@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-fmt := import("fmt")
-flag := import("flag")
-os := import("os")
+package builtin
 
-data := flag.string("data", "pong", "when data is 'crash', the module will cause an error.")
-flag.parse()
+import (
+	"github.com/d5/tengo/v2"
+	"github.com/olive-io/bee/tengo/builtin/flag"
+	"github.com/olive-io/bee/tengo/builtin/trace"
+)
 
-if data == "crash" {
-    fmt.println("cause error")
-    os.exit(1)
+var BuiltinMap = tengo.NewModuleMap()
+
+func init() {
+	BuiltinMap.Add("flag", flag.Importable)
+	BuiltinMap.Add("trace", trace.Importable)
 }
-
-fmt.printf(`{"data": "%s", "changed": "false"}`, data)

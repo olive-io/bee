@@ -124,7 +124,7 @@ type Module struct {
 func (m *Module) Execute(args ...string) (*Command, error) {
 	cmd := m.Command.ParseCmd()
 	if len(args) > 0 &&
-		!strings.Contains(args[0], "=") &&
+		!strings.Contains(args[0], "-") &&
 		strings.Contains(args[0], ".") {
 		arg0 := strings.Split(args[0], ".")
 		args = append(arg0, args[1:]...)
