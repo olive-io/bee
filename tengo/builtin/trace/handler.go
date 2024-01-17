@@ -90,6 +90,12 @@ func (h *traceHandler) WithGroup(name string) slog.Handler {
 	return &traceHandler{level: h.level, handlers: handlers}
 }
 
+func (h *traceHandler) setLevel(level slog.Level) {
+	h.Lock()
+	defer h.Unlock()
+	h.level = level
+}
+
 // AddHandler adds a new slog.Handler to ImportModule
 func (m *ImportModule) AddHandler() tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {

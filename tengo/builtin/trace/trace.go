@@ -27,7 +27,7 @@ var (
 	Importable tengo.Importable = NewTrace()
 )
 
-const defaultLevel = slog.LevelDebug
+const defaultLevel = slog.LevelInfo
 
 type ImportModule struct {
 	tengo.ObjectImpl
@@ -62,6 +62,7 @@ func NewTrace() *ImportModule {
 	attrs := map[string]tengo.Object{}
 	attrs["add_handler"] = &tengo.UserFunction{Name: "add_handler", Value: tm.AddHandler()}
 	attrs["add_hook"] = &tengo.UserFunction{Name: "add_hook", Value: tm.AddHook()}
+	attrs["set_level"] = &tengo.UserFunction{Name: "set_level", Value: tm.SetLevel()}
 	attrs["int"] = &tengo.UserFunction{Name: "int", Value: tm.IntField()}
 	attrs["float"] = &tengo.UserFunction{Name: "float", Value: tm.FloatField()}
 	attrs["string"] = &tengo.UserFunction{Name: "string", Value: tm.StringField()}
@@ -88,6 +89,32 @@ func (m *ImportModule) AsImmutableMap(name string) *tengo.ImmutableMap {
 	}
 	attrs["__module_name__"] = &tengo.String{Value: name}
 	return &tengo.ImmutableMap{Value: attrs}
+}
+
+func (m *ImportModule) SetLevel() tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		numArgs := len(args)
+		if numArgs != 1 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "missing level")
+		}
+
+		levelStr, ok := args[0].(*tengo.String)
+		if !ok {
+			return nil, tengo.ErrInvalidArgumentType{
+				Name:     "level",
+				Expected: "string",
+				Found:    args[1].TypeName(),
+			}
+		}
+		level, ok := parseLevel(levelStr.Value)
+		if !ok {
+			level = defaultLevel
+		}
+		m.level = level
+		m.handler.setLevel(level)
+
+		return tengo.UndefinedValue, nil
+	}
 }
 
 func (m *ImportModule) IntField() tengo.CallableFunc {
