@@ -13,10 +13,21 @@ builds:
       - linux
       - windows
 archives:
-  -
+  - id: bee
+    format_overrides:
+      - goos: windows
+        format: zip
+
     files:
       - none*
+
 checksum:
   name_template: 'checksums.txt'
 changelog:
   sort: desc
+
+nfpms:
+  -
+    formats:
+      - deb
+      - rpm
