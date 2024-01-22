@@ -15,10 +15,14 @@
 package inventory
 
 import (
+	"sync"
+
 	"github.com/olive-io/bee/parser"
 )
 
 type Manager struct {
+	sync.RWMutex
+
 	loader  *parser.DataLoader
 	sources []string
 
@@ -30,6 +34,8 @@ func NewInventoryManager(loader *parser.DataLoader, sources ...string) (*Manager
 	im := &Manager{
 		loader:  loader,
 		sources: sources,
+		groups:  make(map[string]*parser.Group),
+		hosts:   make(map[string]*parser.Host),
 	}
 	var err error
 	im.groups, err = im.MatchedGroups()
@@ -43,7 +49,36 @@ func NewInventoryManager(loader *parser.DataLoader, sources ...string) (*Manager
 	return im, nil
 }
 
+func (im *Manager) AddSources(sources ...string) error {
+	im.Lock()
+	defer im.Unlock()
+
+	im.sources = append(im.sources, sources...)
+	for _, source := range sources {
+		matched, err := im.loader.MatchGroups(source)
+		if err != nil {
+			return err
+		}
+		for key, host := range matched {
+			im.groups[key] = host
+		}
+	}
+
+	for _, source := range sources {
+		matched, err := im.loader.MatchHosts(source)
+		if err != nil {
+			return err
+		}
+		for key, host := range matched {
+			im.hosts[key] = host
+		}
+	}
+	return nil
+}
+
 func (im *Manager) MatchedGroups() (map[string]*parser.Group, error) {
+	im.RLock()
+	defer im.RUnlock()
 	groups := make(map[string]*parser.Group)
 	for _, source := range im.sources {
 		matched, err := im.loader.MatchGroups(source)
@@ -58,6 +93,8 @@ func (im *Manager) MatchedGroups() (map[string]*parser.Group, error) {
 }
 
 func (im *Manager) MatchedHosts() (map[string]*parser.Host, error) {
+	im.RLock()
+	defer im.RUnlock()
 	hosts := make(map[string]*parser.Host)
 	for _, source := range im.sources {
 		matched, err := im.loader.MatchHosts(source)

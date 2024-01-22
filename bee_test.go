@@ -29,15 +29,15 @@ import (
 
 const hostText = `
 host1 bee_host=192.168.2.32:22 bee_user=root bee_ssh_passwd=123456
-host2 bee_host=192.168.2.164 bee_connect=winrm bee_platform=windows bee_user=Administrator bee_winrm_passwd=xxx
+# host2 bee_host=192.168.2.164 bee_connect=winrm bee_platform=windows bee_user=Administrator bee_winrm_passwd=xxx
 `
 
-func newRuntime(t *testing.T, sources []string, modules ...string) (*bee.Runtime, func()) {
+func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, func()) {
 	dataloader := parser.NewDataLoader()
 	if err := dataloader.ParseString(hostText); err != nil {
 		t.Fatal(err)
 	}
-	inventory, err := inv.NewInventoryManager(dataloader, sources...)
+	inventory, err := inv.NewInventoryManager(dataloader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,16 +54,17 @@ func newRuntime(t *testing.T, sources []string, modules ...string) (*bee.Runtime
 	cancel := func() {
 		_ = rt.Stop()
 	}
-	return rt, cancel
+	return rt, inventory, cancel
 }
 
 func Test_Runtime(t *testing.T) {
 	sources := []string{"host1"}
-	rt, cancel := newRuntime(t, sources)
+	rt, inventory, cancel := newRuntime(t)
 	defer cancel()
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
+	inventory.AddSources(sources...)
 	data, err := rt.Execute(ctx, "host1", "ping", options...)
 	if err != nil {
 		t.Fatal(err)
@@ -124,11 +125,12 @@ func Test_Runtime_extra_modules(t *testing.T) {
 	defer clean()
 
 	sources := []string{"host1"}
-	rt, cancel := newRuntime(t, sources, extra)
+	rt, inventory, cancel := newRuntime(t, extra)
 	defer cancel()
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
+	inventory.AddSources(sources...)
 	data, err := rt.Execute(ctx, "host1", "hello_world name=lack", options...)
 	if err != nil {
 		t.Fatal(err)

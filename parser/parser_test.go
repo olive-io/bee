@@ -69,6 +69,9 @@ func TestBelongToBasicGroups(t *testing.T) {
 
 	_ = v.ParseString(`host3:1001`)
 	assert.Equal(t, 1001, v.Hosts["host3"].Port, "Host3 port is set")
+
+	_ = v.ParseString(`host3:1002`)
+	assert.Equal(t, 1002, v.Hosts["host3"].Port, "Host3 port is set")
 }
 
 func TestGroupStructure(t *testing.T) {
