@@ -17,12 +17,20 @@ package builtin
 import (
 	"github.com/olive-io/bee/module"
 	"github.com/olive-io/bee/module/internal"
-	"github.com/olive-io/bee/module/internal/builtin/ping"
+	mcopy "github.com/olive-io/bee/module/internal/builtin/copy"
+	mfetch "github.com/olive-io/bee/module/internal/builtin/fetch"
+	mping "github.com/olive-io/bee/module/internal/builtin/ping"
 )
 
 func GetModules() (map[string]*module.Module, error) {
 	modules := map[string]*module.Module{}
-	if err := register(&modules, ping.PingModule); err != nil {
+	if err := register(&modules, mping.PingModule); err != nil {
+		return nil, err
+	}
+	if err := register(&modules, mcopy.CopyModule); err != nil {
+		return nil, err
+	}
+	if err := register(&modules, mfetch.FetchModule); err != nil {
 		return nil, err
 	}
 
