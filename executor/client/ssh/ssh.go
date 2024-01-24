@@ -214,7 +214,7 @@ func (c *Client) Put(ctx context.Context, src, dst string, opts ...client.PutOpt
 	}
 
 	if ee != nil {
-		return errors.Wrap(client.ErrRequest, err.Error())
+		return errors.Wrap(client.ErrRequest, ee.Error())
 	}
 
 	return nil

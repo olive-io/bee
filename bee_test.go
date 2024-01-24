@@ -16,6 +16,7 @@ package bee_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -66,6 +67,27 @@ func Test_Runtime(t *testing.T) {
 	options := make([]bee.RunOption, 0)
 	inventory.AddSources(sources...)
 	data, err := rt.Execute(ctx, "host1", "ping", options...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(data))
+}
+
+func Test_Copy(t *testing.T) {
+	sources := []string{"host1"}
+	rt, inventory, cancel := newRuntime(t)
+	defer cancel()
+
+	dst := "/tmp/1.txt"
+	defer os.Remove(dst)
+
+	_ = os.WriteFile(dst, []byte("hello world"), os.ModePerm)
+	shell := fmt.Sprintf("copy src=%s dst=/tmp/1.txt", dst)
+
+	ctx := context.TODO()
+	options := make([]bee.RunOption, 0)
+	inventory.AddSources(sources...)
+	data, err := rt.Execute(ctx, "host1", shell, options...)
 	if err != nil {
 		t.Fatal(err)
 	}

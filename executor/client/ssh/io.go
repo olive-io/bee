@@ -83,6 +83,10 @@ func put(
 	}
 	defer writer.Close()
 
+	if stat, _ := reader.Stat(); stat != nil {
+		_ = ftp.Chmod(dst, stat.Mode())
+	}
+
 	var trace *client.IOTrace
 	if fn != nil {
 		trace = &client.IOTrace{

@@ -13,10 +13,13 @@
 // limitations under the License.
 
 flag := import("flag")
+fmt := import("fmt")
 os := import("os")
 
-src := flag.string("src", "", "")
-dst := flag.string("dst", "", "")
+src := flag.string("src", "", "set the path of source file or directory")
+dst := flag.string("dst", "", "set the path of destination file or directory")
 flag.parse()
 
-// os.rename(src, dst)
+os.rename(src, dst)
+
+fmt.printf(`{"changed": "true"}`)

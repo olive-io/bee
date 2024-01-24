@@ -15,8 +15,12 @@
 package copy
 
 import (
+	"path"
+	"strings"
+
 	"github.com/olive-io/bee/executor/client"
 	"github.com/olive-io/bee/module"
+	"github.com/olive-io/bee/vars"
 )
 
 const copyExample = ``
@@ -61,10 +65,20 @@ var preRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOpti
 		return nil, err
 	}
 
+	home := ctx.Variables.GetDefault(vars.BeeHome, ".bee")
+	goos := ctx.Variables.GetDefault(vars.BeePlatformVars, "linux")
+
+	dst = path.Join(home, "tmp", path.Base(dst))
+	if goos == "windows" {
+		dst = strings.ReplaceAll(dst, "/", "\\")
+	}
+
 	err = ctx.Conn.Put(ctx, src, dst)
 	if err != nil {
 		return nil, err
 	}
+
+	ctx.Variables.Set(module.PrefixFlag+"src", dst)
 
 	return out, nil
 }

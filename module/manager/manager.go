@@ -71,13 +71,17 @@ func NewModuleManager(lg *zap.Logger, dir string) (*Manager, error) {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-		for name, _ := range mg.modules {
-			if !strings.HasPrefix(name, "bee.builtin") {
-				continue
-			}
-			if err = mg.SaveModule(name, mdir); err != nil {
-				return nil, err
-			}
+		if err = os.MkdirAll(bdir, os.ModePerm); err != nil {
+			return nil, err
+		}
+	}
+
+	for name, _ := range mg.modules {
+		if !strings.HasPrefix(name, "bee.builtin") {
+			continue
+		}
+		if err = mg.SaveModule(name, mdir); err != nil {
+			return nil, err
 		}
 	}
 
@@ -168,6 +172,11 @@ func (mg *Manager) SaveModule(name, dir string) error {
 
 	var err error
 	root := filepath.Join(dir, m.Dir)
+	desc := filepath.Join(root, "bee.yml")
+	if stat, _ := os.Stat(desc); stat != nil {
+		return nil
+	}
+
 	if err = os.MkdirAll(root, 0755); err != nil {
 		return err
 	}
@@ -177,7 +186,7 @@ func (mg *Manager) SaveModule(name, dir string) error {
 	}
 
 	data, _ := yaml.Marshal(m)
-	return os.WriteFile(filepath.Join(root, "bee.yml"), data, 0600)
+	return os.WriteFile(desc, data, 0600)
 }
 
 func (mg *Manager) writeCommand(cmd *module.Command, root string) error {

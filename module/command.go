@@ -29,6 +29,10 @@ import (
 	"github.com/olive-io/bee/vars"
 )
 
+const (
+	PrefixFlag = "__flag_"
+)
+
 type StableMap[T any] struct {
 	store map[string]T
 }
@@ -141,7 +145,8 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	}
 
 	command.Flags().VisitAll(func(flag *pflag.Flag) {
-		arg := "--" + flag.Name + "=" + flag.Value.String()
+		value := ctx.Variables.GetDefault(PrefixFlag+flag.Name, flag.Value.String())
+		arg := "--" + flag.Name + "=" + value
 		execOptions.Args = append(execOptions.Args, arg)
 	})
 
