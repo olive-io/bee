@@ -18,6 +18,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/olive-io/bee/executor/client"
 	"github.com/olive-io/bee/module"
 	"github.com/olive-io/bee/vars"
@@ -68,7 +69,7 @@ var preRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOpti
 	home := ctx.Variables.GetDefault(vars.BeeHome, ".bee")
 	goos := ctx.Variables.GetDefault(vars.BeePlatformVars, "linux")
 
-	dst = path.Join(home, "tmp", path.Base(dst))
+	dst = path.Join(home, "tmp", uuid.New().String()+path.Ext(dst))
 	if goos == "windows" {
 		dst = strings.ReplaceAll(dst, "/", "\\")
 	}

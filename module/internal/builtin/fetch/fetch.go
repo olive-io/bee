@@ -14,7 +14,14 @@
 
 package fetch
 
-import "github.com/olive-io/bee/module"
+import (
+	"path"
+	"strings"
+
+	"github.com/olive-io/bee/executor/client"
+	"github.com/olive-io/bee/module"
+	"github.com/olive-io/bee/vars"
+)
 
 const fetchExample = ``
 
@@ -39,7 +46,43 @@ var FetchModule = &module.Module{
 			},
 		},
 		Returns: []*module.Schema{},
+		PreRun:  preRun,
 		Run:     module.DefaultRunCommand,
+		PostRun: postRun,
 	},
 	Dir: "builtin/fetch",
+}
+
+var preRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOption) ([]byte, error) {
+
+	return []byte(""), nil
+}
+
+var postRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOption) ([]byte, error) {
+	out := []byte("")
+
+	fs := ctx.Cmd.Flags()
+	src, err := fs.GetString("src")
+	if err != nil {
+		return nil, err
+	}
+	dst, err := fs.GetString("dst")
+	if err != nil {
+		return nil, err
+	}
+
+	home := ctx.Variables.GetDefault(vars.BeeHome, ".bee")
+	goos := ctx.Variables.GetDefault(vars.BeePlatformVars, "linux")
+
+	dst = path.Join(home, "tmp", path.Base(dst))
+	if goos == "windows" {
+		dst = strings.ReplaceAll(dst, "/", "\\")
+	}
+
+	err = ctx.Conn.Get(ctx, src, dst)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
