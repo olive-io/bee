@@ -259,7 +259,7 @@ func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunO
 	return out, err
 }
 
-func (rt *Runtime) syncRepl(ctx context.Context, conn client.IClient, sm *module.StableMap[string]) error {
+func (rt *Runtime) syncRepl(ctx context.Context, conn client.IClient, sm *module.StableMap) error {
 	lg := rt.opts.logger
 	home := sm.GetDefault(vars.BeeHome, ".bee")
 	goos := sm.GetDefault(vars.BeePlatformVars, "linux")
@@ -299,7 +299,7 @@ func (rt *Runtime) syncRepl(ctx context.Context, conn client.IClient, sm *module
 	return conn.Put(ctx, toolchain, repl, client.PutWithMkdir(true))
 }
 
-func (rt *Runtime) syncModules(ctx context.Context, conn client.IClient, sm *module.StableMap[string]) error {
+func (rt *Runtime) syncModules(ctx context.Context, conn client.IClient, sm *module.StableMap) error {
 	root := rt.modules.RootDir()
 	dirs := rt.modules.ModuleDirs()
 
@@ -339,7 +339,7 @@ func (rt *Runtime) Stop() error {
 	return nil
 }
 
-func (rt *Runtime) applyStableMap(host string) *module.StableMap[string] {
+func (rt *Runtime) applyStableMap(host string) *module.StableMap {
 	sm := module.NewVariables()
 	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, ".bee")
 	sm.Set(vars.BeeHome, home)

@@ -15,19 +15,15 @@
 package manager
 
 import (
-	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	"github.com/olive-io/bee/module"
+	"github.com/olive-io/bee/module/hook"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
-
-	"github.com/olive-io/bee/module"
-	"github.com/olive-io/bee/module/internal/builtin"
 )
 
 type Manager struct {
@@ -52,37 +48,11 @@ func NewModuleManager(lg *zap.Logger, dir string) (*Manager, error) {
 		modules:    map[string]*module.Module{},
 		lg:         lg,
 	}
-	builtins, err := builtin.GetModules()
-	if err != nil {
-		return nil, err
-	}
-	for name, m := range builtins {
-		mg.modules[name] = m
-	}
 	if err = mg.LoadDir(mdir); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
 		mg.moduleDirs = append(mg.moduleDirs, mdir)
-	}
-
-	bdir := filepath.Join(mdir, "builtin")
-	if _, err = os.Stat(bdir); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-		if err = os.MkdirAll(bdir, os.ModePerm); err != nil {
-			return nil, err
-		}
-	}
-
-	for name, _ := range mg.modules {
-		if !strings.HasPrefix(name, "bee.builtin") {
-			continue
-		}
-		if err = mg.SaveModule(name, mdir); err != nil {
-			return nil, err
-		}
 	}
 
 	return mg, nil
@@ -111,6 +81,16 @@ func (mg *Manager) LoadDir(dir string) error {
 		m, err := module.LoadDir(dir)
 		if err != nil {
 			return err
+		}
+		if hk, ok := hook.Hooks[m.Name]; ok {
+			forCommandHook(m.Command, hk)
+		}
+		for i := range m.Commands {
+			cmd := m.Commands[i]
+			name := m.Name + cmd.Name
+			if hk, ok := hook.Hooks[name]; ok {
+				forCommandHook(m.Command, hk)
+			}
 		}
 		mg.LoadModule(m)
 		return nil
@@ -163,50 +143,14 @@ func (mg *Manager) Find(name string) (*module.Module, bool) {
 	return m, ok
 }
 
-// SaveModule writes module to the given directory
-func (mg *Manager) SaveModule(name, dir string) error {
-	m, ok := mg.modules[name]
-	if !ok {
-		return fmt.Errorf("module not found")
+func forCommandHook(cmd *module.Command, hk *hook.CommandHook) {
+	if hk.PreRun != nil {
+		cmd.PreRun = hk.PreRun
 	}
-
-	var err error
-	root := filepath.Join(dir, m.Dir)
-	desc := filepath.Join(root, "bee.yml")
-	if stat, _ := os.Stat(desc); stat != nil {
-		return nil
+	if hk.Run != nil {
+		cmd.Run = hk.Run
 	}
-
-	if err = os.MkdirAll(root, 0755); err != nil {
-		return err
+	if hk.PostRun != nil {
+		cmd.PostRun = hk.PostRun
 	}
-
-	if err = mg.writeCommand(m.Command, dir); err != nil {
-		return err
-	}
-
-	data, _ := yaml.Marshal(m)
-	return os.WriteFile(desc, data, 0600)
-}
-
-func (mg *Manager) writeCommand(cmd *module.Command, root string) error {
-	if !cmd.Runnable() {
-		return nil
-	}
-	dir := path.Dir(cmd.Script)
-	_ = os.MkdirAll(dir, 0644)
-	data, ok := cmd.ScriptsData[cmd.Script]
-	if ok {
-		script := filepath.Join(root, cmd.Script)
-		if err := os.WriteFile(script, data, 0666); err != nil {
-			return err
-		}
-	}
-
-	for _, sc := range cmd.Commands {
-		if err := mg.writeCommand(sc, root); err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -101,11 +101,10 @@ func TestModule_Execute(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, c.Name, "my_ping")
-	flags := c.Flags()
-	ip, _ := flags.GetString("ip")
+	ip, _ := c.Flags().GetString("ip")
 	assert.Equal(t, ip, "10.0.0.100")
 
-	c, err = m.Execute("")
+	c, err = m.Execute("ip=127.0.0.1")
 	if err != nil {
 		t.Fatal(err)
 	}

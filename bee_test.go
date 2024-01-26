@@ -92,6 +92,13 @@ func Test_Copy(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(data))
+
+	shell = fmt.Sprintf("fetch src=%s dst=/tmp/11.txt", dst)
+	data, err = rt.Execute(ctx, "host1", shell, options...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(data))
 }
 
 const moduleCfg = `name: "hello_world"

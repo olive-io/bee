@@ -15,8 +15,6 @@
 package manager_test
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,24 +23,8 @@ import (
 	"github.com/olive-io/bee/module/manager"
 )
 
-func initData(t *testing.T, dir string) (string, func()) {
-	temp := filepath.Join(os.TempDir(), dir)
-	err := os.MkdirAll(temp, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = os.MkdirAll(filepath.Join(temp, "repl"), 0o644)
-	cancel := func() {
-		_ = os.RemoveAll(temp)
-	}
-	return temp, cancel
-}
-
 func Test_ModuleManager(t *testing.T) {
-	dir, cancel := initData(t, ".bee")
-	defer cancel()
-
-	mg, err := manager.NewModuleManager(zap.NewExample(), dir)
+	mg, err := manager.NewModuleManager(zap.NewExample(), "../../build/")
 	if err != nil {
 		t.Fatal(err)
 	}

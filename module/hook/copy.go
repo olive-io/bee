@@ -12,53 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fetch
+package hook
 
 import (
 	"path"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/olive-io/bee/executor/client"
 	"github.com/olive-io/bee/module"
 	"github.com/olive-io/bee/vars"
 )
 
-const fetchExample = ``
-
-var FetchModule = &module.Module{
-	Command: &module.Command{
-		Name:    "bee.builtin.fetch",
-		Long:    "",
-		Script:  "builtin/fetch/fetch.tengo",
-		Authors: []string{"lack"},
-		Version: "v1.0.0",
-		Example: fetchExample,
-		Params: []*module.Schema{
-			{
-				Name:        "src",
-				Type:        "string",
-				Description: "",
-			},
-			{
-				Name:        "dst",
-				Type:        "string",
-				Description: "",
-			},
-		},
-		Returns: []*module.Schema{},
-		PreRun:  preRun,
-		Run:     module.DefaultRunCommand,
-		PostRun: postRun,
-	},
-	Dir: "builtin/fetch",
+var copyHook = &CommandHook{
+	PreRun: copyPreRun,
 }
 
-var preRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOption) ([]byte, error) {
-
-	return []byte(""), nil
-}
-
-var postRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOption) ([]byte, error) {
+var copyPreRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOption) ([]byte, error) {
 	out := []byte("")
 
 	fs := ctx.Cmd.Flags()
@@ -74,15 +44,17 @@ var postRun module.RunE = func(ctx *module.RunContext, options ...client.ExecOpt
 	home := ctx.Variables.GetDefault(vars.BeeHome, ".bee")
 	goos := ctx.Variables.GetDefault(vars.BeePlatformVars, "linux")
 
-	dst = path.Join(home, "tmp", path.Base(dst))
+	dst = path.Join(home, "tmp", uuid.New().String()+path.Ext(dst))
 	if goos == "windows" {
 		dst = strings.ReplaceAll(dst, "/", "\\")
 	}
 
-	err = ctx.Conn.Get(ctx, src, dst)
+	err = ctx.Conn.Put(ctx, src, dst)
 	if err != nil {
 		return nil, err
 	}
+
+	ctx.Variables.Set(module.PrefixFlag+"src", dst)
 
 	return out, nil
 }

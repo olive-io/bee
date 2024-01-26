@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package hook
 
-import (
-	"embed"
-)
+import "github.com/olive-io/bee/module"
 
-//go:embed builtin/*/*.tengo
-var fs embed.FS
+var Hooks = map[string]*CommandHook{
+	"bee.builtin.copy":  copyHook,
+	"bee.builtin.fetch": fetchHook,
+}
 
-func ReadFile(name string) ([]byte, error) {
-	return fs.ReadFile(name)
+type CommandHook struct {
+	PreRun  module.RunE
+	Run     module.RunE
+	PostRun module.RunE
 }

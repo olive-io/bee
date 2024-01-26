@@ -1,0 +1,22 @@
+name: bee.builtin.ping
+long: ""
+script: ping.tengo
+authors:
+  - lack
+version: v1.0.0
+example: ""
+params:
+  - name: data
+    type: string
+    short: ""
+    description: Data to return for the `ping` return value.If this parameter is set to `crash`, the module will cause an error.
+    default: ping
+    example: ""
+returns:
+  - name: data
+    type: string
+    short: ""
+    description: ""
+    default: pong
+    example: ""
+root: builtin/ping

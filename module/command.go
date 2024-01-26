@@ -33,19 +33,19 @@ const (
 	PrefixFlag = "__flag_"
 )
 
-type StableMap[T any] struct {
-	store map[string]T
+type StableMap struct {
+	store map[string]string
 }
 
-func NewVariables() *StableMap[string] {
-	return &StableMap[string]{store: map[string]string{}}
+func NewVariables() *StableMap {
+	return &StableMap{store: map[string]string{}}
 }
 
-func (sm *StableMap[T]) Set(key string, value T) {
+func (sm *StableMap) Set(key string, value string) {
 	sm.store[key] = value
 }
 
-func (sm *StableMap[T]) GetDefault(key string, defaultV T) T {
+func (sm *StableMap) GetDefault(key string, defaultV string) string {
 	v, ok := sm.store[key]
 	if !ok {
 		return defaultV
@@ -59,33 +59,30 @@ type RunContext struct {
 	Logger    *zap.Logger
 	Cmd       *Command
 	Conn      client.IClient
-	Variables *StableMap[string]
+	Variables *StableMap
 }
 
 type RunE func(ctx *RunContext, options ...client.ExecOption) ([]byte, error)
 
 type Command struct {
-	Name        string            `yaml:"name"`
-	Long        string            `yaml:"long"`
-	Script      string            `yaml:"script"`
-	Authors     []string          `yaml:"authors"`
-	Version     string            `yaml:"version"`
-	Example     string            `yaml:"example"`
-	Params      []*Schema         `yaml:"params"`
-	Returns     []*Schema         `yaml:"returns"`
-	Commands    []*Command        `yaml:"commands"`
-	ScriptsData map[string][]byte `yaml:"-"`
-	cobra       *cobra.Command    `yaml:"-"`
-
-	// runnable
-	cacheVars map[string]string `yaml:"-"`
+	Name     string         `yaml:"name"`
+	Long     string         `yaml:"long"`
+	Script   string         `yaml:"script"`
+	Authors  []string       `yaml:"authors"`
+	Version  string         `yaml:"version"`
+	Example  string         `yaml:"example"`
+	Params   []*Schema      `yaml:"params"`
+	Returns  []*Schema      `yaml:"returns"`
+	Commands []*Command     `yaml:"commands"`
+	Root     string         `yaml:"root"`
+	cobra    *cobra.Command `yaml:"-"`
 
 	PreRun  RunE `yaml:"-"`
 	Run     RunE `yaml:"-"`
 	PostRun RunE `yaml:"-"`
 }
 
-func (c *Command) NewContext(ctx context.Context, lg *zap.Logger, conn client.IClient, variables *StableMap[string]) *RunContext {
+func (c *Command) NewContext(ctx context.Context, lg *zap.Logger, conn client.IClient, variables *StableMap) *RunContext {
 	rctx := &RunContext{
 		Context:   ctx,
 		Logger:    lg,
@@ -165,7 +162,7 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 		return nil, err
 	}
 
-	script := path.Join(home, "modules", command.Script)
+	script := path.Join(home, "modules", command.Root, command.Script)
 	if goos == "windows" {
 		script = strings.ReplaceAll(script, "/", "\\")
 	}

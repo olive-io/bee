@@ -1,0 +1,21 @@
+name: bee.builtin.fetch
+long: ""
+script: fetch.tengo
+authors:
+  - lack
+version: v1.0.0
+example: ""
+params:
+  - name: src
+    type: string
+    short: ""
+    description: ""
+    default: ""
+    example: ""
+  - name: dst
+    type: string
+    short: ""
+    description: ""
+    default: ""
+    example: ""
+root: builtin/fetch

@@ -32,7 +32,7 @@ var (
 )
 
 func LoadDir(name string) (*Module, error) {
-	command, err := readYML(name)
+	command, err := readCommand(name)
 	if err != nil {
 		return nil, err
 	}
@@ -41,10 +41,11 @@ func LoadDir(name string) (*Module, error) {
 		Command: command,
 		Dir:     name,
 	}
+
 	return m, nil
 }
 
-func readYML(dir string) (*Command, error) {
+func readCommand(dir string) (*Command, error) {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -58,7 +59,7 @@ func readYML(dir string) (*Command, error) {
 			continue
 		}
 		if ent.IsDir() {
-			sub, se := readYML(filepath.Join(dir, ent.Name()))
+			sub, se := readCommand(filepath.Join(dir, ent.Name()))
 			if se != nil && !errors.Is(se, ErrEmptyDir) {
 				return nil, se
 			}
@@ -101,24 +102,20 @@ func validateScript(c *Command, dir string) error {
 		return nil
 	}
 
-	if c.Script[0] != '/' {
-		c.Script = filepath.Join(dir, c.Script)
+	sp := c.Script
+	if sp[0] != '/' {
+		sp = filepath.Join(dir, c.Script)
 	}
-	_, err := os.Stat(c.Script)
+	_, err := os.Stat(sp)
 	if err != nil {
 		return errors.Wrapf(err, "invalid script")
 	}
-	if c.ScriptsData == nil {
-		c.ScriptsData = map[string][]byte{}
-	}
-	//c.ScriptsData[c.Script] = data
 	return nil
 }
 
 type Module struct {
-	*Command
-
-	Dir string
+	*Command `yaml:",inline"`
+	Dir      string `yaml:"dir"`
 }
 
 func (m *Module) Execute(args ...string) (*Command, error) {
@@ -143,5 +140,6 @@ func (m *Module) Execute(args ...string) (*Command, error) {
 		return nil, err
 	}
 	mc := command.Context().Value(ctxValue).(*Command)
+	mc.Root = m.Root
 	return mc, nil
 }
