@@ -15,6 +15,7 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/fs"
@@ -125,6 +126,43 @@ func (c *Client) Stat(ctx context.Context, name string) (*client.Stat, error) {
 	return stat, nil
 }
 
+func (c *Client) ReadFile(ctx context.Context, name string) ([]byte, error) {
+	_, err := c.stat(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	in := &pb.GetRequest{
+		Name:      name,
+		CacheSize: client.DefaultCacheSize,
+	}
+	copts := c.callOptions()
+	rc, err := c.cc.Get(ctx, in, copts...)
+	if err != nil {
+		return nil, rpctype.ParseGRPCErr(err)
+	}
+
+	w := bytes.NewBufferString("")
+
+	for {
+		rsp, e1 := rc.Recv()
+		if e1 != nil && e1 != io.EOF {
+			return nil, rpctype.ParseGRPCErr(err)
+		}
+
+		if rsp.Chunk != nil && len(rsp.Chunk.Data) != 0 {
+			chunk := rsp.Chunk.Data[:rsp.Chunk.Length]
+			w.Write(chunk)
+		}
+
+		if e1 == io.EOF {
+			break
+		}
+	}
+
+	return w.Bytes(), nil
+}
+
 func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
 	options := client.NewGetOptions()
 	for _, opt := range opts {
@@ -160,17 +198,14 @@ func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOpt
 			fw = nil
 		}
 	}()
-	written := int64(0)
-	sub := int64(0)
-	last := time.Now()
-	fn := options.Trace
+
 	for {
 		rsp, e1 := rc.Recv()
 		if e1 != nil && e1 != io.EOF {
 			return rpctype.ParseGRPCErr(err)
 		}
 
-		if err = c.save(rsp, fw, dst, &written, &sub, &last, fn); err != nil {
+		if err = c.save(rsp, fw, dst, options.Trace); err != nil {
 			return rpctype.ToGRPCErr(err)
 		}
 
@@ -182,7 +217,7 @@ func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOpt
 	return nil
 }
 
-func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, written, sub *int64, last *time.Time, fn client.IOTraceFn) error {
+func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, fn client.IOTraceFn) error {
 	if rsp == nil || rsp.Stat != nil {
 		return nil
 	}
@@ -190,6 +225,9 @@ func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, written, sub
 	var err error
 	rs := rsp.Stat
 	name := rs.Name
+	written := int64(0)
+	sub := int64(0)
+	last := time.Now()
 	if rs.IsDir {
 		//entry := filepath.Join(dst, strings.TrimPrefix(name, src))
 		return os.Mkdir(dst, fs.FileMode(rs.Perm))
@@ -220,12 +258,12 @@ func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, written, sub
 	if err != nil {
 		return err
 	}
-	*written += int64(n)
+	written += int64(n)
 	if fn != nil {
 		now := time.Now()
-		trace.Chunk = *written
-		trace.Speed = int64(float64(*written-*sub) / (now.Sub(*last).Seconds()))
-		*last = now
+		trace.Chunk = written
+		trace.Speed = int64(float64(written-sub) / (now.Sub(last).Seconds()))
+		last = now
 		sub = written
 		fn(trace)
 	}

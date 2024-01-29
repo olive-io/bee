@@ -22,14 +22,12 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/olive-io/bee/module"
 	"github.com/olive-io/bee/module/hook"
-	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
 
 type Manager struct {
-	dir        string
-	moduleDirs []string
-	modules    map[string]*module.Module
+	dir     string
+	modules map[string]*module.Module
 
 	lg *zap.Logger
 }
@@ -43,16 +41,14 @@ func NewModuleManager(lg *zap.Logger, dir string) (*Manager, error) {
 
 	mdir := filepath.Join(dir, "modules")
 	mg := &Manager{
-		dir:        mdir,
-		moduleDirs: []string{},
-		modules:    map[string]*module.Module{},
-		lg:         lg,
+		dir:     mdir,
+		modules: map[string]*module.Module{},
+		lg:      lg,
 	}
 	if err = mg.LoadDir(mdir); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-		mg.moduleDirs = append(mg.moduleDirs, mdir)
 	}
 
 	return mg, nil
@@ -62,12 +58,12 @@ func (mg *Manager) RootDir() string {
 	return mg.dir
 }
 
-func (mg *Manager) ModuleDirs() []string {
-	dirs := make([]string, len(mg.moduleDirs))
-	for i, dir := range mg.moduleDirs {
-		dirs[i] = dir
+func (mg *Manager) Modules() []*module.Module {
+	ms := make([]*module.Module, 0)
+	for name, _ := range mg.modules {
+		ms = append(ms, mg.modules[name])
 	}
-	return dirs
+	return ms
 }
 
 func (mg *Manager) LoadModule(m *module.Module) {
@@ -77,7 +73,6 @@ func (mg *Manager) LoadModule(m *module.Module) {
 // LoadDir loads modules from local directory
 func (mg *Manager) LoadDir(dir string) error {
 	if mg.validDir(dir) {
-		mg.moduleDirs = lo.Uniq[string](append(mg.moduleDirs, dir))
 		m, err := module.LoadDir(dir)
 		if err != nil {
 			return err

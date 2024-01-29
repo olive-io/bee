@@ -16,6 +16,7 @@ package ssh
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -97,6 +98,24 @@ func (c *Client) Stat(ctx context.Context, name string) (*client.Stat, error) {
 	}
 
 	return stat, nil
+}
+
+func (c *Client) ReadFile(ctx context.Context, name string) ([]byte, error) {
+	sfc, err := c.newSFTPSession()
+	if err != nil {
+		return nil, errors.Wrap(client.ErrRequest, err.Error())
+	}
+
+	f, err := sfc.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+	return data, nil
 }
 
 func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {

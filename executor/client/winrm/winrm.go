@@ -15,6 +15,7 @@
 package winrm
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -89,6 +90,24 @@ func (wr *WinRM) Stat(ctx context.Context, name string) (*client.Stat, error) {
 	return stat, nil
 }
 
+func (wr *WinRM) ReadFile(ctx context.Context, name string) ([]byte, error) {
+	info, err := fetchRemoteDir(ctx, wr.cc, name)
+	if err != nil {
+		return nil, err
+	}
+	if len(info) == 0 {
+		return nil, client.ErrNotExists
+	}
+
+	buf := make([]byte, 2048)
+	writer := bytes.NewBufferString("")
+	err = readContent(ctx, wr.Logger, wr.cc, name, writer, buf, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return writer.Bytes(), nil
+}
+
 func (wr *WinRM) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
 	options := client.NewGetOptions()
 	for _, opt := range opts {
@@ -100,7 +119,7 @@ func (wr *WinRM) Get(ctx context.Context, src, dst string, opts ...client.GetOpt
 		return err
 	}
 	if len(info) == 0 {
-		return nil
+		return os.ErrNotExist
 	}
 
 	buf := make([]byte, options.CacheSize)
@@ -120,7 +139,20 @@ func (wr *WinRM) get(ctx context.Context, remotePath, localPath string, buf []by
 	}
 	defer writer.Close()
 
-	return readContent(ctx, wr.Logger, wr.cc, remotePath, writer, buf, fn)
+	var trace *client.IOTrace
+	if fn != nil {
+		trace = &client.IOTrace{
+			Name: filepath.Base(writer.Name()),
+			Src:  writer.Name(),
+			Dst:  localPath,
+		}
+		stat, _ := writer.Stat()
+		if stat != nil {
+			trace.Total = stat.Size()
+		}
+	}
+
+	return readContent(ctx, wr.Logger, wr.cc, remotePath, writer, buf, trace, fn)
 }
 
 func (wr *WinRM) walker(ctx context.Context, items []os.FileInfo, root, local string, buf []byte, fn client.IOTraceFn) error {

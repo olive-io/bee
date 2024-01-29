@@ -35,6 +35,8 @@ const (
 type IClient interface {
 	Name() string
 	Stat(ctx context.Context, name string) (*Stat, error)
+	// ReadFile reads file content from remote connection
+	ReadFile(ctx context.Context, name string) ([]byte, error)
 	// Get gets io.ReadCloser from remote connection
 	Get(ctx context.Context, src, dst string, opts ...GetOption) error
 	// Put uploads local file to remote host

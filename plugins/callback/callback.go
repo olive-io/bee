@@ -26,16 +26,13 @@ type BaseCallBack struct {
 }
 
 func (b BaseCallBack) RunnerOnUnreachable(result *executor.TaskResult) {
-	//TODO implement me
-	panic("implement me")
+
 }
 
 func (b BaseCallBack) RunnerOnOk(result *executor.TaskResult) {
-	//TODO implement me
-	panic("implement me")
+
 }
 
 func (b BaseCallBack) RunnerOkFailed(result *executor.TaskResult) {
-	//TODO implement me
-	panic("implement me")
+
 }

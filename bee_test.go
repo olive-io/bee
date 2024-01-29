@@ -65,6 +65,7 @@ func Test_Runtime(t *testing.T) {
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
+	//options = append(options, bee.SetRunSync(true))
 	inventory.AddSources(sources...)
 	data, err := rt.Execute(ctx, "host1", "ping", options...)
 	if err != nil {

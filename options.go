@@ -77,6 +77,7 @@ func SetLogger(lg *zap.Logger) Option {
 }
 
 type RunOptions struct {
+	sync bool
 }
 
 func newRunOptions() *RunOptions {
@@ -85,3 +86,9 @@ func newRunOptions() *RunOptions {
 }
 
 type RunOption func(*RunOptions)
+
+func SetRunSync(b bool) RunOption {
+	return func(opt *RunOptions) {
+		opt.sync = b
+	}
+}

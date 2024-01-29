@@ -53,6 +53,11 @@ func (sm *StableMap) GetDefault(key string, defaultV string) string {
 	return v
 }
 
+func (sm *StableMap) Exists(key string) bool {
+	_, ok := sm.store[key]
+	return ok
+}
+
 type RunContext struct {
 	context.Context
 

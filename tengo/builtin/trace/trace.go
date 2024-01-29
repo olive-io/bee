@@ -81,6 +81,10 @@ func (m *ImportModule) Import(name string) (interface{}, error) {
 	return m.AsImmutableMap(name), nil
 }
 
+func (m *ImportModule) Version() string {
+	return "v1.0.0"
+}
+
 // AsImmutableMap converts builtin module into an immutable map.
 func (m *ImportModule) AsImmutableMap(name string) *tengo.ImmutableMap {
 	attrs := make(map[string]tengo.Object, len(m.Attrs))

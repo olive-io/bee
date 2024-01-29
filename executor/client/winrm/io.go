@@ -317,7 +317,7 @@ func tempFileName() string {
 	return fmt.Sprintf("winrmcp-%s.tmp", uuid.New().String())
 }
 
-func readContent(ctx context.Context, lg *zap.Logger, cc *winrm.Client, dst string, writer *os.File, buf []byte, fn client.IOTraceFn) error {
+func readContent(ctx context.Context, lg *zap.Logger, cc *winrm.Client, dst string, writer io.Writer, buf []byte, trace *client.IOTrace, fn client.IOTraceFn) error {
 	shell, err := cc.CreateShell()
 	if err != nil {
 		return err
@@ -334,19 +334,6 @@ Get-Content $dest_file_path`, dst)
 		return err
 	}
 	defer cmd.Close()
-
-	var trace *client.IOTrace
-	if fn != nil {
-		trace = &client.IOTrace{
-			Name: filepath.Base(writer.Name()),
-			Src:  writer.Name(),
-			Dst:  dst,
-		}
-		stat, _ := writer.Stat()
-		if stat != nil {
-			trace.Total = stat.Size()
-		}
-	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -374,7 +361,7 @@ Get-Content $dest_file_path`, dst)
 					}
 				}
 
-				if fn != nil {
+				if trace != nil && fn != nil {
 					now := time.Now()
 					trace.Chunk += int64(nw)
 					trace.Speed = int64(float64(nw) / (now.Sub(last).Seconds()))

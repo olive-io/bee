@@ -14,9 +14,17 @@
 
 package tengo
 
+import "github.com/d5/tengo/v2"
+
 type TengoV struct {
 	Version   string `json:"version"`
 	GoVersion string `json:"go-version"`
 	Goos      string `json:"os"`
 	Platform  string `json:"platform"`
+}
+
+type BeeImportable interface {
+	tengo.Importable
+
+	Version() string
 }

@@ -50,8 +50,7 @@ func init() {
 	flag.BoolVar(&showHelp, "help", false, "Show help")
 	flag.StringVar(&compileOutput, "o", "", "Compile output file")
 	flag.BoolVar(&showVersion, "version", false, "Show version")
-	flag.BoolVar(&resolvePath, "resolve", false,
-		"Resolve relative import paths")
+	flag.BoolVar(&resolvePath, "resolve", false, "Resolve relative import paths")
 	flag.Parse()
 }
 
