@@ -12,14 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executor
-
-type TaskResult struct {
-	Host   string      `json:"host"`
-	Stdout *TaskStdout `json:"stdout"`
-	ErrMsg string      `json:"err_msg"`
-}
-
-type TaskStdout struct {
-	Changed bool `json:"changed"`
-}
+package stats

@@ -12,92 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package playbook
-
-import "strings"
-
-type PlayBook struct {
-	Name string `json:"name" yaml:"name"`
-
-	Hosts []string `json:"hosts" yaml:"hosts"`
-
-	Vars map[string]any `json:"vars" yaml:"vars"`
-
-	RemoteUser string `json:"remote_user" yaml:"remote_user"`
-
-	Sudo     bool   `json:"sudo" yaml:"sudo"`
-	SudoUser string `json:"sudo_user" yaml:"sudo_user"`
-
-	Tasks []*Task `json:"tasks" yaml:"tasks" yaml:"tasks"`
-
-	Handlers []*Handler `json:"handlers" yaml:"handlers"`
-}
-
-func (pb *PlayBook) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
-	var kvs []YamlKV
-	if err := unmarshal(&kvs); err != nil {
-		return err
-	}
-	for _, kv := range kvs {
-		_, err = kv.Apply("name", &pb.Name)
-		if err != nil {
-			return
-		}
-		_, err = kv.ApplyArray("hosts", &pb.Hosts)
-		if err != nil {
-			return
-		}
-		_, err = kv.ApplyMap("vars", &pb.Vars)
-		if err != nil {
-			return
-		}
-		_, err = kv.Apply("remote_user", &pb.RemoteUser)
-		if err != nil {
-			return
-		}
-		_, err = kv.Apply("sudo", &pb.Sudo)
-		if err != nil {
-			return
-		}
-		_, err = kv.Apply("sudo_user", &pb.SudoUser)
-		if err != nil {
-			return
-		}
-		if values, ok := kv["tasks"]; ok {
-			vv, ok := values.([]any)
-			if !ok {
-				continue
-			}
-			pb.Tasks = make([]*Task, len(vv))
-			for i, item := range vv {
-				task := new(Task)
-				if err = task.fromKV(item.(YamlKV)); err != nil {
-					return
-				}
-				pb.Tasks[i] = task
-			}
-		}
-		if values, ok := kv["handlers"]; ok {
-			vv, ok := values.([]any)
-			if !ok {
-				continue
-			}
-			pb.Handlers = make([]*Handler, len(vv))
-			for i, item := range vv {
-				handler := new(Handler)
-				if err = handler.fromKV(item.(YamlKV)); err != nil {
-					return
-				}
-				pb.Handlers[i] = handler
-			}
-		}
-	}
-
-	return nil
-}
+package process
 
 type Task struct {
 	Name string `json:"name" yaml:"name"`
+	Id   string `json:"id" yaml:"id"`
 
 	Vars map[string]string `json:"vars" yaml:"vars"`
 
@@ -182,26 +101,23 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 	return
 }
 
-type Handler struct {
-	Name string `json:"name" yaml:"name"`
-
-	Module string            `json:"module" yaml:"module"`
-	Args   map[string]string `json:"args" yaml:"args"`
-}
-
-func (h *Handler) fromKV(kv YamlKV) error {
-	for key, value := range kv {
-		if key == "name" {
-			_, err := kv.Apply("name", &h.Name)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		h.Module = key
-		if vs, ok := value.(string); ok && len(strings.TrimSpace(vs)) != 0 {
-			h.Args = parseTaskArgs(vs)
-		}
-	}
-	return nil
-}
+//func (t *Task) Execute(ctx context.Context, rt *bee.Runtime) ([]byte, error) {
+//	err := rt.Inventory().AddSources(t.Hosts...)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	args := make([]string, 0)
+//	for key, value := range t.Args {
+//		args = append(args, key + "=" + value)
+//	}
+//
+//	options := make([]bee.RunOption, 0)
+//	shell := fmt.Sprintf("%s %s", t.Name, strings.Join(args, " "))
+//	for _, host := range t.Hosts {
+//		data, err := rt.Execute(ctx, host, shell, options...)
+//		if err != nil {
+//			return nil, err
+//		}
+//	}
+//}

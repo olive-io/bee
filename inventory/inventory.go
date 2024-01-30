@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/olive-io/bee/parser"
+	"github.com/samber/lo"
 )
 
 type Manager struct {
@@ -53,8 +54,18 @@ func (im *Manager) AddSources(sources ...string) error {
 	im.Lock()
 	defer im.Unlock()
 
-	im.sources = append(im.sources, sources...)
-	for _, source := range sources {
+	ins := make([]string, 0)
+	for _, in := range sources {
+		_, ok := lo.Find[string](im.sources, func(item string) bool {
+			return item == in
+		})
+		if !ok {
+			ins = append(ins, in)
+		}
+	}
+
+	im.sources = append(im.sources, ins...)
+	for _, source := range ins {
 		matched, err := im.loader.MatchGroups(source)
 		if err != nil {
 			return err
@@ -64,7 +75,7 @@ func (im *Manager) AddSources(sources ...string) error {
 		}
 	}
 
-	for _, source := range sources {
+	for _, source := range ins {
 		matched, err := im.loader.MatchHosts(source)
 		if err != nil {
 			return err

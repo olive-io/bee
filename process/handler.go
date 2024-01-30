@@ -12,24 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package callback
+package process
 
-import "github.com/olive-io/bee/stats"
+import "strings"
 
-type ICallBack interface {
-	RunnerOnUnreachable(result stats.TaskResult)
-	RunnerOnOk(result stats.TaskResult)
-	RunnerOkFailed(result stats.TaskResult)
+type Handler struct {
+	Name string `json:"name" yaml:"name"`
+
+	Module string            `json:"module" yaml:"module"`
+	Args   map[string]string `json:"args" yaml:"args"`
 }
 
-type BaseCallBack struct {
-}
-
-func (b *BaseCallBack) RunnerOnUnreachable(result stats.TaskResult) {
-}
-
-func (b *BaseCallBack) RunnerOnOk(result stats.TaskResult) {
-}
-
-func (b *BaseCallBack) RunnerOkFailed(result stats.TaskResult) {
+func (h *Handler) fromKV(kv YamlKV) error {
+	for key, value := range kv {
+		if key == "name" {
+			_, err := kv.Apply("name", &h.Name)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		h.Module = key
+		if vs, ok := value.(string); ok && len(strings.TrimSpace(vs)) != 0 {
+			h.Args = parseTaskArgs(vs)
+		}
+	}
+	return nil
 }

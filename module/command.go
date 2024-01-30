@@ -20,7 +20,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
@@ -32,6 +31,15 @@ import (
 const (
 	PrefixFlag = "__flag_"
 )
+
+type CommandErr struct {
+	Err    error
+	Stderr []byte
+}
+
+func (e *CommandErr) Error() string {
+	return fmt.Sprintf("%s: %v", e.Err.Error(), string(e.Stderr))
+}
 
 type StableMap struct {
 	store map[string]string
@@ -197,7 +205,7 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	}
 	data, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, errors.Wrap(err, string(beautify(data)))
+		return nil, &CommandErr{Err: err, Stderr: beautify(data)}
 	}
 	return beautify(data), nil
 }

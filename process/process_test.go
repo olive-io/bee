@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package playbook
+package process
 
 import (
 	"testing"
@@ -43,8 +43,8 @@ func TestPlayBook_UnmarshalYAML(t *testing.T) {
     - name: restart apache
       service: name=httpd state=restarted`
 
-	pb := &PlayBook{}
-	err := yaml.Unmarshal([]byte(text), pb)
+	pr := &Process{}
+	err := yaml.Unmarshal([]byte(text), pr)
 	if err != nil {
 		t.Fatal(err)
 	}

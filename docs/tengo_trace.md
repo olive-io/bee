@@ -36,7 +36,7 @@ name := "world"
 // 追加 output
 trace.add_handler("_output/tmp.log", "info", trace.string("namespace", "trace"))
 // 新增 webhook
-trace.add_hook("http://127.0.0.1:50001/hook", trace.string("namespace", "bee"))
+trace.add_hook("http://127.0.0.1:5000/hook", trace.string("namespace", "bee"))
 
 
 fields := trace.string("a", "b")

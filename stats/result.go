@@ -12,24 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package callback
+package stats
 
-import "github.com/olive-io/bee/stats"
-
-type ICallBack interface {
-	RunnerOnUnreachable(result stats.TaskResult)
-	RunnerOnOk(result stats.TaskResult)
-	RunnerOkFailed(result stats.TaskResult)
-}
-
-type BaseCallBack struct {
-}
-
-func (b *BaseCallBack) RunnerOnUnreachable(result stats.TaskResult) {
-}
-
-func (b *BaseCallBack) RunnerOnOk(result stats.TaskResult) {
-}
-
-func (b *BaseCallBack) RunnerOkFailed(result stats.TaskResult) {
+type TaskResult struct {
+	Host   string         `json:"host"`
+	Stdout map[string]any `json:"stdout"`
+	ErrMsg string         `json:"err_msg"`
 }

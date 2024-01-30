@@ -12,24 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package callback
+package bee_test
 
-import "github.com/olive-io/bee/stats"
+import (
+	"context"
+	"testing"
 
-type ICallBack interface {
-	RunnerOnUnreachable(result stats.TaskResult)
-	RunnerOnOk(result stats.TaskResult)
-	RunnerOkFailed(result stats.TaskResult)
-}
+	"github.com/olive-io/bee"
+	"github.com/olive-io/bee/process"
+)
 
-type BaseCallBack struct {
-}
+func TestRuntime_Play(t *testing.T) {
+	sources := []string{"host1"}
+	rt, inventory, cancel := newRuntime(t)
+	defer cancel()
 
-func (b *BaseCallBack) RunnerOnUnreachable(result stats.TaskResult) {
-}
+	ctx := context.TODO()
+	options := make([]bee.RunOption, 0)
+	inventory.AddSources(sources...)
 
-func (b *BaseCallBack) RunnerOnOk(result stats.TaskResult) {
-}
-
-func (b *BaseCallBack) RunnerOkFailed(result stats.TaskResult) {
+	pr := &process.Process{
+		Name:  "a test process",
+		Id:    "p1",
+		Hosts: sources,
+		Tasks: []*process.Task{
+			{
+				Name:   "first task",
+				Id:     "t1",
+				Module: "ping",
+			},
+		},
+	}
+	err := rt.Play(ctx, pr, options...)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

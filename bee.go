@@ -129,7 +129,40 @@ func (rt *Runtime) Logger() *zap.Logger {
 	return rt.opts.logger
 }
 
+func (rt *Runtime) Inventory() *inv.Manager {
+	return rt.inventory
+}
+
 func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunOption) ([]byte, error) {
+	ech := make(chan error, 1)
+	ch := make(chan []byte, 1)
+	defer func() {
+		close(ch)
+		close(ech)
+	}()
+
+	err := rt.pool.Submit(func() {
+		data, err := rt.run(ctx, host, shell, opts...)
+		if err != nil {
+			ech <- err
+			return
+		}
+		ch <- data
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	select {
+	case err = <-ech:
+		return nil, err
+	case data := <-ch:
+		return data, nil
+	}
+}
+
+func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOption) ([]byte, error) {
 	lg := rt.Logger()
 	options := newRunOptions()
 	for _, opt := range opts {
