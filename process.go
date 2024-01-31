@@ -88,6 +88,11 @@ func (rt *Runtime) RunBpmnProcess(
 	if err != nil {
 		return err
 	}
+	if tracer := runOptions.Tracer; tracer != nil {
+		ins.Tracer.SubscribeChannel(tracer)
+		defer ins.Tracer.Unsubscribe(tracer)
+	}
+
 	traces := ins.Tracer.Subscribe()
 	err = ins.StartAll(ctx)
 	if err != nil {
@@ -113,7 +118,6 @@ LOOP:
 		case flow.Trace:
 		case *activity.Trace:
 			tProps, tHeaders := ft.OnPreTaskProps(tt.GetProperties(), tt.GetHeaders())
-
 			task := decodeTask(tProps, tHeaders)
 
 			hosts := task.Hosts

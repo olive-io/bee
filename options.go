@@ -21,6 +21,7 @@ import (
 
 	"github.com/olive-io/bee/plugins/callback"
 	"github.com/olive-io/bee/plugins/filter"
+	"github.com/olive-io/bpmn/tracing"
 	"go.uber.org/zap"
 )
 
@@ -81,6 +82,7 @@ func SetLogger(lg *zap.Logger) Option {
 type RunOptions struct {
 	Callback callback.ICallBack
 	Filter   filter.IFilter
+	Tracer   chan tracing.ITrace
 	sync     bool
 }
 
@@ -94,20 +96,26 @@ func newRunOptions() *RunOptions {
 
 type RunOption func(*RunOptions)
 
-func SetRunSync(b bool) RunOption {
+func WithRunSync(b bool) RunOption {
 	return func(opt *RunOptions) {
 		opt.sync = b
 	}
 }
 
-func SetRunCallback(cb callback.ICallBack) RunOption {
+func WithRunCallback(cb callback.ICallBack) RunOption {
 	return func(opt *RunOptions) {
 		opt.Callback = cb
 	}
 }
 
-func SetRunFilter(f filter.IFilter) RunOption {
+func WithRunFilter(f filter.IFilter) RunOption {
 	return func(opt *RunOptions) {
 		opt.Filter = f
+	}
+}
+
+func WithRunTracer(tracer chan tracing.ITrace) RunOption {
+	return func(opt *RunOptions) {
+		opt.Tracer = tracer
 	}
 }

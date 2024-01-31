@@ -20,6 +20,7 @@ import (
 
 	"github.com/olive-io/bee"
 	"github.com/olive-io/bee/process"
+	"github.com/olive-io/bpmn/tracing"
 )
 
 func TestRuntime_Play(t *testing.T) {
@@ -43,6 +44,41 @@ func TestRuntime_Play(t *testing.T) {
 			},
 		},
 	}
+	err := rt.Play(ctx, pr, options...)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRuntime_PlayWithTracer(t *testing.T) {
+	sources := []string{"host1"}
+	rt, inventory, cancel := newRuntime(t)
+	defer cancel()
+
+	ctx := context.TODO()
+	options := make([]bee.RunOption, 0)
+	tracer := make(chan tracing.ITrace, 10)
+	options = append(options, bee.WithRunTracer(tracer))
+	inventory.AddSources(sources...)
+
+	pr := &process.Process{
+		Name:  "a test process",
+		Id:    "p1",
+		Hosts: sources,
+		Tasks: []process.ITask{
+			&process.Task{
+				Name:   "first task",
+				Id:     "t1",
+				Action: "ping",
+			},
+		},
+	}
+	
+	go func() {
+		for tt := range tracer {
+			t.Logf("%#v", tt)
+		}
+	}()
 	err := rt.Play(ctx, pr, options...)
 	if err != nil {
 		t.Fatal(err)
