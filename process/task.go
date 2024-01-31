@@ -15,27 +15,34 @@
 package process
 
 type Task struct {
-	Name string `json:"name" yaml:"name"`
-	Id   string `json:"id" yaml:"id"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
 
-	Vars map[string]string `json:"vars" yaml:"vars"`
+	Vars map[string]string `json:"vars,omitempty" yaml:"vars,omitempty"`
 
-	Module string            `json:"module" yaml:"module"`
-	Args   map[string]string `json:"args" yaml:"args"`
+	Action string            `json:"action,omitempty" yaml:"action,omitempty"`
+	Args   map[string]string `json:"args,omitempty" yaml:"args,omitempty"`
 
-	RemoteUser string `json:"remote_user" yaml:"remote_user"`
+	RemoteUser string `json:"remote_user,omitempty" yaml:"remote_user,omitempty"`
 
-	Sudo     bool   `json:"sudo" yaml:"sudo"`
-	SudoUser string `json:"sudo_user" yaml:"sudo_user"`
+	Sudo     bool   `json:"sudo,omitempty" yaml:"sudo,omitempty"`
+	SudoUser string `json:"sudo_user,omitempty" yaml:"sudo_user,omitempty"`
 
-	Hosts []string `json:"hosts" yaml:"hosts"`
+	Hosts []string `json:"hosts,omitempty" yaml:"hosts,omitempty"`
 
-	Notify []string `json:"notify" yaml:"notify"`
+	Notify []string `json:"notify,omitempty" yaml:"notify,omitempty"`
 }
 
 func (t *Task) fromKV(kv YamlKV) (err error) {
 	for key, value := range kv {
 		if key == "name" {
+			_, err = kv.Apply("name", &t.Name)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if key == "id" {
 			_, err = kv.Apply("name", &t.Name)
 			if err != nil {
 				return err
@@ -84,7 +91,7 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 			}
 			continue
 		}
-		t.Module = key
+		t.Action = key
 		if vs, ok := value.(string); ok {
 			t.Args = parseTaskArgs(vs)
 		}
@@ -100,24 +107,3 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 	}
 	return
 }
-
-//func (t *Task) Execute(ctx context.Context, rt *bee.Runtime) ([]byte, error) {
-//	err := rt.Inventory().AddSources(t.Hosts...)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	args := make([]string, 0)
-//	for key, value := range t.Args {
-//		args = append(args, key + "=" + value)
-//	}
-//
-//	options := make([]bee.RunOption, 0)
-//	shell := fmt.Sprintf("%s %s", t.Name, strings.Join(args, " "))
-//	for _, host := range t.Hosts {
-//		data, err := rt.Execute(ctx, host, shell, options...)
-//		if err != nil {
-//			return nil, err
-//		}
-//	}
-//}

@@ -14,13 +14,10 @@
 
 package process
 
-type ITask interface {
-	fromKV(kv YamlKV) (err error)
-}
-
-type Process struct {
+type ChildProcess struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
 	Hosts []string `json:"hosts,omitempty" yaml:"hosts,omitempty"`
 
@@ -36,46 +33,71 @@ type Process struct {
 	Handlers []*Handler `json:"handlers,omitempty" yaml:"handlers,omitempty"`
 }
 
-func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
-	var kvs []YamlKV
-	if err := unmarshal(&kvs); err != nil {
-		return err
-	}
-	for _, kv := range kvs {
-		_, err = kv.Apply("name", &p.Name)
-		if err != nil {
-			return
+func (c *ChildProcess) fromKV(kv YamlKV) (err error) {
+	for key, value := range kv {
+		if key == "name" {
+			_, err = kv.Apply("name", &c.Name)
+			if err != nil {
+				return err
+			}
+			continue
 		}
-		_, err = kv.Apply("id", &p.Id)
-		if err != nil {
-			return err
+		if key == "id" {
+			_, err = kv.Apply("id", &c.Id)
+			if err != nil {
+				return err
+			}
+			continue
 		}
-		_, err = kv.ApplyArray("hosts", &p.Hosts)
-		if err != nil {
-			return
+		if key == "kind" {
+			_, err = kv.Apply("kind", &c.Kind)
+			if err != nil {
+				return err
+			}
+			continue
 		}
-		_, err = kv.ApplyMap("vars", &p.Vars)
-		if err != nil {
-			return
+		if key == "hosts" {
+			_, err = kv.ApplyArray("hosts", &c.Hosts)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		_, err = kv.Apply("remote_user", &p.RemoteUser)
-		if err != nil {
-			return
+		if key == "vars" {
+			_, err = kv.ApplyMap("vars", &c.Vars)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		_, err = kv.Apply("sudo", &p.Sudo)
-		if err != nil {
-			return
+		if key == "remote_user" {
+			_, err = kv.Apply("remote_user", &c.RemoteUser)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		_, err = kv.Apply("sudo_user", &p.SudoUser)
-		if err != nil {
-			return
+		if key == "sudo" {
+			_, err = kv.Apply("sudo", &c.Sudo)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		if values, ok := kv["tasks"]; ok {
-			vv, ok := values.([]any)
+		if key == "sudo_user" {
+			_, err = kv.Apply("sudo_user", &c.SudoUser)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		if key == "tasks" {
+			vv, ok := value.([]any)
 			if !ok {
 				continue
 			}
-			p.Tasks = make([]ITask, len(vv))
+			c.Tasks = make([]ITask, len(vv))
 			for i, item := range vv {
 
 				var kind string
@@ -85,31 +107,31 @@ func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 					if err = cp.fromKV(ykv); err != nil {
 						return
 					}
-					p.Tasks[i] = cp
+					c.Tasks[i] = cp
 				} else {
 					task := new(Task)
 					if err = task.fromKV(ykv); err != nil {
 						return
 					}
-					p.Tasks[i] = task
+					c.Tasks[i] = task
 				}
 			}
 		}
+
 		if values, ok := kv["handlers"]; ok {
 			vv, ok := values.([]any)
 			if !ok {
 				continue
 			}
-			p.Handlers = make([]*Handler, len(vv))
+			c.Handlers = make([]*Handler, len(vv))
 			for i, item := range vv {
 				handler := new(Handler)
 				if err = handler.fromKV(item.(YamlKV)); err != nil {
 					return
 				}
-				p.Handlers[i] = handler
+				c.Handlers[i] = handler
 			}
 		}
 	}
-
-	return nil
+	return
 }

@@ -19,6 +19,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/olive-io/bee/plugins/callback"
+	"github.com/olive-io/bee/plugins/filter"
 	"go.uber.org/zap"
 )
 
@@ -77,11 +79,16 @@ func SetLogger(lg *zap.Logger) Option {
 }
 
 type RunOptions struct {
-	sync bool
+	Callback callback.ICallBack
+	Filter   filter.IFilter
+	sync     bool
 }
 
 func newRunOptions() *RunOptions {
-	options := RunOptions{}
+	options := RunOptions{
+		Callback: callback.NewCallBack(),
+		Filter:   filter.NewFilter(),
+	}
 	return &options
 }
 
@@ -90,5 +97,17 @@ type RunOption func(*RunOptions)
 func SetRunSync(b bool) RunOption {
 	return func(opt *RunOptions) {
 		opt.sync = b
+	}
+}
+
+func SetRunCallback(cb callback.ICallBack) RunOption {
+	return func(opt *RunOptions) {
+		opt.Callback = cb
+	}
+}
+
+func SetRunFilter(f filter.IFilter) RunOption {
+	return func(opt *RunOptions) {
+		opt.Filter = f
 	}
 }

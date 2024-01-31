@@ -24,7 +24,6 @@ import (
 	"github.com/olive-io/bee"
 	inv "github.com/olive-io/bee/inventory"
 	"github.com/olive-io/bee/parser"
-	"github.com/olive-io/bee/plugins/callback"
 	"github.com/olive-io/bee/vars"
 )
 
@@ -48,7 +47,7 @@ func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, fu
 		bee.SetDir("_output/bee"),
 		bee.SetModulePath(modules),
 	}
-	rt, err := bee.NewRuntime(inventory, variables, dataloader, &callback.BaseCallBack{}, options...)
+	rt, err := bee.NewRuntime(inventory, variables, dataloader, options...)
 	if err != nil {
 		t.Fatal(err)
 	}

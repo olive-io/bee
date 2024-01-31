@@ -218,7 +218,7 @@ func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOpt
 }
 
 func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, fn client.IOTraceFn) error {
-	if rsp == nil || rsp.Stat != nil {
+	if rsp == nil || rsp.Stat == nil {
 		return nil
 	}
 

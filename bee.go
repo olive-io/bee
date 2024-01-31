@@ -33,7 +33,6 @@ import (
 	"github.com/olive-io/bee/module"
 	mmg "github.com/olive-io/bee/module/manager"
 	"github.com/olive-io/bee/parser"
-	"github.com/olive-io/bee/plugins/callback"
 	"github.com/olive-io/bee/secret"
 	"github.com/olive-io/bee/vars"
 )
@@ -55,12 +54,11 @@ type Runtime struct {
 	passwords *secret.PasswordManager
 	modules   *mmg.Manager
 	executor  *bexecutor.Executor
-	callback  callback.ICallBack
 }
 
 func NewRuntime(
 	inventory *inv.Manager, variables *vars.VariableManager,
-	loader *parser.DataLoader, callback callback.ICallBack, opts ...Option,
+	loader *parser.DataLoader, opts ...Option,
 ) (*Runtime, error) {
 
 	options := newOptions()
@@ -104,7 +102,6 @@ func NewRuntime(
 		passwords: passwords,
 		executor:  executor,
 		modules:   modules,
-		callback:  callback,
 	}
 
 	if err = rt.loadModules(); err != nil {

@@ -12,28 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package callback
+package filter
 
-import "github.com/olive-io/bee/stats"
-
-type ICallBack interface {
-	RunnerOnUnreachable(result *stats.TaskResult)
-	RunnerOnOk(result *stats.TaskResult)
-	RunnerOkFailed(result *stats.TaskResult)
+type IFilter interface {
+	OnPreTaskProps(pros, headers map[string]any) (map[string]any, map[string]any)
+	OnPostTaskStdout(stdout map[string]any) map[string]any
 }
 
-func NewCallBack() ICallBack {
-	return &BaseCallBack{}
+func NewFilter() IFilter {
+	return &BaseFilter{}
 }
 
-type BaseCallBack struct {
+type BaseFilter struct{}
+
+func (b *BaseFilter) OnPreTaskProps(pros, headers map[string]any) (map[string]any, map[string]any) {
+	return pros, headers
 }
 
-func (b *BaseCallBack) RunnerOnUnreachable(result *stats.TaskResult) {
-}
-
-func (b *BaseCallBack) RunnerOnOk(result *stats.TaskResult) {
-}
-
-func (b *BaseCallBack) RunnerOkFailed(result *stats.TaskResult) {
+func (b *BaseFilter) OnPostTaskStdout(stdout map[string]any) map[string]any {
+	return stdout
 }

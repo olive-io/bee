@@ -31,6 +31,11 @@ func TestPlayBook_UnmarshalYAML(t *testing.T) {
   tasks:
   - name: ensure apache is at the latest version
     yum: pkg=httpd state=latest
+  - name: child process
+    kind: process
+    tasks:
+    - name: first child task
+      ping: 
   - name: write the apache config file
     template:
       src: /srv/httpd.j2
@@ -48,4 +53,12 @@ func TestPlayBook_UnmarshalYAML(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	var data []byte
+	data, err = yaml.Marshal(pr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(string(data))
 }

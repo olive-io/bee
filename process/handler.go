@@ -19,7 +19,7 @@ import "strings"
 type Handler struct {
 	Name string `json:"name" yaml:"name"`
 
-	Module string            `json:"module" yaml:"module"`
+	Action string            `json:"action" yaml:"Action"`
 	Args   map[string]string `json:"args" yaml:"args"`
 }
 
@@ -32,7 +32,7 @@ func (h *Handler) fromKV(kv YamlKV) error {
 			}
 			continue
 		}
-		h.Module = key
+		h.Action = key
 		if vs, ok := value.(string); ok && len(strings.TrimSpace(vs)) != 0 {
 			h.Args = parseTaskArgs(vs)
 		}

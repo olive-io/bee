@@ -35,11 +35,11 @@ func TestRuntime_Play(t *testing.T) {
 		Name:  "a test process",
 		Id:    "p1",
 		Hosts: sources,
-		Tasks: []*process.Task{
-			{
+		Tasks: []process.ITask{
+			&process.Task{
 				Name:   "first task",
 				Id:     "t1",
-				Module: "ping",
+				Action: "ping",
 			},
 		},
 	}
