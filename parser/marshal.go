@@ -82,6 +82,9 @@ func (dl *DataLoader) UnmarshalJSON(data []byte) error {
 		host.DirectGroups = lo.PickByKeys(rawDataLoader.Groups, maps.Keys(host.DirectGroups))
 	}
 
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+
 	dl.Groups = rawDataLoader.Groups
 	dl.Hosts = rawDataLoader.Hosts
 	return nil

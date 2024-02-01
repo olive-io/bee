@@ -21,11 +21,14 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // DataLoader contains parsed inventory representation
 // Note: Groups and Hosts fields contain all the groups and hosts, not only top-level
 type DataLoader struct {
+	mu sync.RWMutex
+
 	Groups map[string]*Group
 	Hosts  map[string]*Host
 }
@@ -86,6 +89,9 @@ func (dl *DataLoader) ParseString(input string) error {
 
 // Parse using some Reader
 func (dl *DataLoader) Parse(r io.Reader) error {
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+
 	input := bufio.NewReader(r)
 	err := dl.parse(input)
 	if err != nil {
@@ -127,6 +133,9 @@ func HostMapListValues(mymap map[string]*Host) []*Host {
 
 // HostsToLower transforms all host names to lowercase
 func (dl *DataLoader) HostsToLower() {
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+
 	dl.Hosts = hostMapToLower(dl.Hosts, false)
 	for _, group := range dl.Groups {
 		group.Hosts = hostMapToLower(group.Hosts, true)
@@ -147,6 +156,9 @@ func hostMapToLower(hosts map[string]*Host, keysOnly bool) map[string]*Host {
 
 // GroupsToLower transforms all group names to lowercase
 func (dl *DataLoader) GroupsToLower() {
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+
 	dl.Groups = groupMapToLower(dl.Groups, false)
 	for _, host := range dl.Hosts {
 		host.DirectGroups = groupMapToLower(host.DirectGroups, true)

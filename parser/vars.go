@@ -43,6 +43,10 @@ func (dl *DataLoader) doAddVars(path string, lowercased bool) error {
 	if err != nil {
 		return err
 	}
+
+	dl.mu.Lock()
+	defer dl.mu.Unlock()
+
 	walk(path, "group_vars", dl.getGroupsMap(), lowercased)
 	walk(path, "host_vars", dl.getHostsMap(), lowercased)
 	dl.reconcileVars()

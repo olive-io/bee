@@ -18,6 +18,9 @@ import "path"
 
 // MatchHosts looks for hosts that match the pattern
 func (dl *DataLoader) MatchHosts(pattern string) (map[string]*Host, error) {
+	dl.mu.RLock()
+	defer dl.mu.RUnlock()
+
 	return MatchHosts(dl.Hosts, pattern)
 }
 
@@ -43,6 +46,9 @@ func MatchHosts(hosts map[string]*Host, pattern string) (map[string]*Host, error
 
 // MatchGroups looks for groups that match the pattern
 func (dl *DataLoader) MatchGroups(pattern string) (map[string]*Group, error) {
+	dl.mu.RLock()
+	defer dl.mu.RUnlock()
+
 	return MatchGroups(dl.Groups, pattern)
 }
 
