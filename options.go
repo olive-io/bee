@@ -15,6 +15,7 @@
 package bee
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -29,12 +30,15 @@ var (
 	DefaultParallel = runtime.NumCPU() * 2
 )
 
+type Callable func(ctx context.Context, host, action string, args map[string]string, opts ...RunOption) ([]byte, error)
+
 type Options struct {
 	dir        string
 	parallel   int
 	check      bool
 	modulePath []string
 	logger     *zap.Logger
+	caller     Callable
 }
 
 func newOptions() *Options {
@@ -79,10 +83,17 @@ func SetLogger(lg *zap.Logger) Option {
 	}
 }
 
+func SetCaller(caller Callable) Option {
+	return func(opt *Options) {
+		opt.caller = caller
+	}
+}
+
 type RunOptions struct {
 	Callback callback.ICallBack
 	Filter   filter.IFilter
 	Tracer   chan tracing.ITrace
+	Metadata map[string]any
 	sync     bool
 }
 
@@ -117,5 +128,16 @@ func WithRunFilter(f filter.IFilter) RunOption {
 func WithRunTracer(tracer chan tracing.ITrace) RunOption {
 	return func(opt *RunOptions) {
 		opt.Tracer = tracer
+	}
+}
+
+func WithMetadata(md map[string]any) RunOption {
+	return func(opt *RunOptions) {
+		if opt.Metadata == nil {
+			opt.Metadata = map[string]any{}
+		}
+		for key, value := range md {
+			opt.Metadata[key] = value
+		}
 	}
 }

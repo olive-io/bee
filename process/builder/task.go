@@ -70,3 +70,56 @@ func (b *ScriptTaskBuilder) Out() *schema.ScriptTask {
 	b.task.ExtensionElementsField.TaskDefinitionField = &schema.TaskDefinition{Type: b.taskType}
 	return b.task
 }
+
+type ServiceTaskBuilder struct {
+	id   string
+	name string
+	task *schema.ServiceTask
+}
+
+func NewServiceTaskBuilder(name string) *ServiceTaskBuilder {
+	task := schema.DefaultServiceTask()
+	task.ExtensionElementsField = &schema.ExtensionElements{
+		TaskHeaderField: &schema.TaskHeader{Header: make([]*schema.Item, 0)},
+		PropertiesField: &schema.Properties{Property: make([]*schema.Item, 0)},
+	}
+	b := &ServiceTaskBuilder{
+		id:   *randShapeName(&task),
+		name: name,
+		task: &task,
+	}
+
+	return b
+}
+
+func (b *ServiceTaskBuilder) SetId(id string) *ServiceTaskBuilder {
+	b.id = id
+	return b
+}
+
+func (b *ServiceTaskBuilder) SetHeader(name string, value any) *ServiceTaskBuilder {
+	vv, vt := parseItemValue(value)
+	b.task.ExtensionElementsField.TaskHeaderField.Header = append(b.task.ExtensionElementsField.TaskHeaderField.Header, &schema.Item{
+		Name:  name,
+		Value: vv,
+		Type:  vt,
+	})
+	return b
+}
+
+func (b *ServiceTaskBuilder) SetProperty(name string, value any) *ServiceTaskBuilder {
+	vv, vt := parseItemValue(value)
+	b.task.ExtensionElementsField.PropertiesField.Property = append(b.task.ExtensionElementsField.PropertiesField.Property, &schema.Item{
+		Name:  name,
+		Value: vv,
+		Type:  vt,
+	})
+	return b
+}
+
+func (b *ServiceTaskBuilder) Out() *schema.ServiceTask {
+	b.task.SetId(&b.id)
+	b.task.SetName(&b.name)
+	b.task.ExtensionElementsField.TaskDefinitionField = &schema.TaskDefinition{}
+	return b.task
+}

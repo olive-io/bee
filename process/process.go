@@ -14,10 +14,6 @@
 
 package process
 
-type ITask interface {
-	fromKV(kv YamlKV) (err error)
-}
-
 type Process struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
@@ -80,12 +76,21 @@ func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 
 				var kind string
 				ykv := item.(YamlKV)
-				if exists, _ := ykv.Apply("kind", &kind); exists && kind == "process" {
-					cp := new(ChildProcess)
-					if err = cp.fromKV(ykv); err != nil {
-						return
+				if exists, _ := ykv.Apply("kind", &kind); exists {
+					switch kind {
+					case ChildProcessKey:
+						cp := new(ChildProcess)
+						if err = cp.fromKV(ykv); err != nil {
+							return
+						}
+						p.Tasks[i] = cp
+					case ServiceKey:
+						sv := new(Service)
+						if err = sv.fromKV(ykv); err != nil {
+							return
+						}
+						p.Tasks[i] = sv
 					}
-					p.Tasks[i] = cp
 				} else {
 					task := new(Task)
 					if err = task.fromKV(ykv); err != nil {

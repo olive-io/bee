@@ -15,8 +15,8 @@
 package filter
 
 type IFilter interface {
-	OnPreTaskProps(pros, headers map[string]any) (map[string]any, map[string]any)
-	OnPostTaskStdout(stdout map[string]any) map[string]any
+	OnPreTaskProps(id string, pros, headers map[string]any) (map[string]any, map[string]any)
+	OnPostTaskStdout(id string, stdout map[string]any) map[string]any
 }
 
 func NewFilter() IFilter {
@@ -25,10 +25,10 @@ func NewFilter() IFilter {
 
 type BaseFilter struct{}
 
-func (b *BaseFilter) OnPreTaskProps(pros, headers map[string]any) (map[string]any, map[string]any) {
+func (b *BaseFilter) OnPreTaskProps(id string, pros, headers map[string]any) (map[string]any, map[string]any) {
 	return pros, headers
 }
 
-func (b *BaseFilter) OnPostTaskStdout(stdout map[string]any) map[string]any {
+func (b *BaseFilter) OnPostTaskStdout(id string, stdout map[string]any) map[string]any {
 	return stdout
 }

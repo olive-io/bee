@@ -30,6 +30,34 @@ func TestRuntime_Play(t *testing.T) {
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
+	_ = inventory.AddSources(sources...)
+
+	pr := &process.Process{
+		Name:  "a test process",
+		Id:    "p1",
+		Hosts: sources,
+		Tasks: []process.ITask{
+			&process.Task{
+				Name:   "first task",
+				Id:     "t1",
+				Action: "ping",
+			},
+		},
+	}
+	err := rt.Play(ctx, pr, options...)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRuntime_PlayWithService(t *testing.T) {
+	sources := []string{"host1"}
+	rt, inventory, cancel := newRuntime(t)
+	defer cancel()
+
+	ctx := context.TODO()
+	options := make([]bee.RunOption, 0)
+	options = append(options)
 	inventory.AddSources(sources...)
 
 	pr := &process.Process{
@@ -41,6 +69,12 @@ func TestRuntime_Play(t *testing.T) {
 				Name:   "first task",
 				Id:     "t1",
 				Action: "ping",
+			},
+			&process.Service{
+				Name:   "second task",
+				Kind:   "service",
+				Id:     "t2",
+				Action: "test",
 			},
 		},
 	}
@@ -73,7 +107,7 @@ func TestRuntime_PlayWithTracer(t *testing.T) {
 			},
 		},
 	}
-	
+
 	go func() {
 		for tt := range tracer {
 			t.Logf("%#v", tt)

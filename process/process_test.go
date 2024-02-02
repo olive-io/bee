@@ -37,6 +37,7 @@ func TestPlayBook_UnmarshalYAML(t *testing.T) {
     - name: first child task
       ping: 
   - name: write the apache config file
+    kind: service
     template:
       src: /srv/httpd.j2
       dest: /etc/httpd.conf
