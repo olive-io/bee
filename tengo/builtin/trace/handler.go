@@ -16,12 +16,12 @@ package trace
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"sync"
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
+	"github.com/olive-io/bee/tengo/slog"
 )
 
 // A traceHandler wraps a Handler with an Enabled method
@@ -113,7 +113,7 @@ func (m *ImportModule) AddHandler() tengo.CallableFunc {
 			}
 		}
 
-		writer, err := os.OpenFile(out.Value, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 755)
+		writer, err := os.OpenFile(out.Value, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0755)
 		if err != nil {
 			return nil, err
 		}

@@ -28,7 +28,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
-	"github.com/masterzen/winrm"
+	"github.com/olive-io/winrm"
 	"go.uber.org/zap"
 
 	"github.com/olive-io/bee/executor/client"

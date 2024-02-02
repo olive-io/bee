@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
-	cwr "github.com/masterzen/winrm"
+	cwr "github.com/olive-io/winrm"
 	"go.uber.org/zap"
 	cssh "golang.org/x/crypto/ssh"
 

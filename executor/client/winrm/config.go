@@ -17,7 +17,7 @@ package winrm
 import (
 	"fmt"
 
-	"github.com/masterzen/winrm"
+	"github.com/olive-io/winrm"
 	"go.uber.org/zap"
 
 	"github.com/olive-io/bee/executor/client"

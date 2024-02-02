@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/masterzen/winrm"
+	"github.com/olive-io/winrm"
 
 	"github.com/olive-io/bee/executor/client"
 )

@@ -15,7 +15,7 @@
 package trace
 
 import (
-	"log/slog"
+	"github.com/olive-io/bee/tengo/slog"
 )
 
 func parseLevel(text string) (slog.Level, bool) {

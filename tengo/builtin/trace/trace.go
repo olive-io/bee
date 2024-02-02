@@ -16,11 +16,11 @@ package trace
 
 import (
 	"context"
-	"log/slog"
 	"os"
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
+	"github.com/olive-io/bee/tengo/slog"
 )
 
 var (

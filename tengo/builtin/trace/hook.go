@@ -17,13 +17,13 @@ package trace
 import (
 	"bytes"
 	"crypto/tls"
-	"log/slog"
 	"net/http"
 	urlpkg "net/url"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
+	"github.com/olive-io/bee/tengo/slog"
 )
 
 const (
