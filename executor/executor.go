@@ -112,6 +112,21 @@ func (e *Executor) newClient(name string) (client.IClient, error) {
 	return cc, err
 }
 
+func (e *Executor) RemoveClient(name string) (bool, error) {
+	e.cmu.RLock()
+	conn, ok := e.clients[name]
+	e.cmu.RUnlock()
+	if !ok {
+		return false, nil
+	}
+
+	err := conn.Close()
+	e.cmu.Lock()
+	defer e.cmu.Unlock()
+	delete(e.clients, name)
+	return ok, err
+}
+
 func (e *Executor) Cleanup() error {
 	var errs []error
 

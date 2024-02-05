@@ -196,7 +196,7 @@ func (e *Executor) buildGRPCClient(host *parser.Host) (*grpc.Client, error) {
 	}
 	ch, _, _ = strings.Cut(ch, ":")
 
-	port := winrm.DefaultWinRMPort
+	port := grpc.DefaultGRPCPort
 	if val, ok := variables[vars.BeePortVars]; ok {
 		if i, _ := strconv.ParseInt(val, 10, 64); i > 0 {
 			port = int(i)

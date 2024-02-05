@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	DefaultGRPCPort = 5450
+	DefaultGRPCPort = 15450
 )
 
 type Client struct {

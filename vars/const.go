@@ -17,7 +17,7 @@ package vars
 const (
 	BeeConnectVars       = "bee_connect"
 	BeeHostVars          = "bee_host"
-	BeePortVars          = "bee_part"
+	BeePortVars          = "bee_port"
 	BeeUserVars          = "bee_user"
 	BeeSSHPasswdVars     = "bee_ssh_passwd"
 	BeeSSHPrivateKeyVars = "bee_ssh_private_key"

@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	"github.com/cockroachdb/errors"
+	"google.golang.org/grpc"
 
 	pb "github.com/olive-io/bee/api/rpc"
 	"github.com/olive-io/bee/api/rpctype"
@@ -35,6 +36,10 @@ type Server struct{}
 func NewServer() *Server {
 	s := &Server{}
 	return s
+}
+
+func RegisterGRPCBeeHandler(s *grpc.Server) {
+	pb.RegisterRemoteRPCServer(s, NewServer())
 }
 
 func (s *Server) Stat(ctx context.Context, req *pb.StatRequest) (*pb.StatResponse, error) {
