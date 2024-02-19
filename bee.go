@@ -16,9 +16,11 @@ package bee
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -139,7 +141,17 @@ func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunO
 	}()
 
 	err := rt.pool.Submit(func() {
-		data, err := rt.run(ctx, host, shell, opts...)
+		call := func() (data []byte, err error) {
+			defer func() {
+				if re := recover(); re != nil {
+					_, file, line, _ := runtime.Caller(4)
+					err = fmt.Errorf("%v at %s:%d", re, file, line)
+				}
+			}()
+			return rt.run(ctx, host, shell, opts...)
+		}
+
+		data, err := call()
 		if err != nil {
 			ech <- err
 			return

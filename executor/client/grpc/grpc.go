@@ -147,10 +147,10 @@ func (c *Client) ReadFile(ctx context.Context, name string) ([]byte, error) {
 	for {
 		rsp, e1 := rc.Recv()
 		if e1 != nil && e1 != io.EOF {
-			return nil, rpctype.ParseGRPCErr(err)
+			return nil, rpctype.ParseGRPCErr(e1)
 		}
 
-		if rsp.Chunk != nil && len(rsp.Chunk.Data) != 0 {
+		if rsp != nil && rsp.Chunk != nil && len(rsp.Chunk.Data) != 0 {
 			chunk := rsp.Chunk.Data[:rsp.Chunk.Length]
 			w.Write(chunk)
 		}
@@ -236,7 +236,7 @@ func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, fn client.IO
 		if fw != nil {
 			_ = fw.Close()
 		}
-		fw, err = os.Create(dst)
+		fw, err = os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 		if err != nil {
 			return err
 		}
@@ -416,6 +416,7 @@ func (c *Client) Execute(ctx context.Context, shell string, opts ...client.ExecO
 		name:     shell,
 		args:     options.Args,
 		envs:     options.Environments,
+		ech:      make(chan error, 1),
 		stopping: make(chan struct{}),
 		done:     make(chan struct{}),
 		stop:     make(chan struct{}),

@@ -35,7 +35,7 @@ type Config struct {
 
 func NewConfig(lg *zap.Logger, addr string) *Config {
 	if lg == nil {
-		lg = zap.NewExample()
+		lg = zap.NewNop()
 	}
 	cfg := &Config{
 		Address: addr,
@@ -52,6 +52,9 @@ func (cfg *Config) Validate() error {
 	}
 	if cfg.Timeout == 0 {
 		cfg.Timeout = client.DefaultDialTimeout
+	}
+	if cfg.lg == nil {
+		cfg.lg = zap.NewNop()
 	}
 
 	return nil

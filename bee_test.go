@@ -17,22 +17,55 @@ package bee_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/olive-io/bee"
+	pb "github.com/olive-io/bee/api/rpc"
 	inv "github.com/olive-io/bee/inventory"
 	"github.com/olive-io/bee/parser"
+	bs "github.com/olive-io/bee/server/grpc"
 	"github.com/olive-io/bee/vars"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 const hostText = `
 host1 bee_host=192.168.2.32:22 bee_user=root bee_ssh_passwd=123456
+localhost bee_connect=grpc bee_host=127.0.0.1 bee_port=15250 bee_platform=darwin bee_arch=arm64 bee_home=/tmp/bee
 # host2 bee_host=192.168.2.164 bee_connect=winrm bee_platform=windows bee_user=Administrator bee_winrm_passwd=xxx
 `
 
+func startGRPCServer(t *testing.T) {
+	port := 15250
+	addr := fmt.Sprintf("localhost:%d", port)
+
+	kp := keepalive.ServerParameters{
+		Time:    5 * time.Minute,
+		Timeout: 1 * time.Minute,
+	}
+
+	impl := bs.NewServer()
+	server := grpc.NewServer(grpc.KeepaliveParams(kp))
+	pb.RegisterRemoteRPCServer(server, impl)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		_ = server.Serve(ln)
+	}()
+
+	time.Sleep(time.Second * 1)
+}
+
 func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, func()) {
+	startGRPCServer(t)
+
 	dataloader := parser.NewDataLoader()
 	if err := dataloader.ParseString(hostText); err != nil {
 		t.Fatal(err)
@@ -66,7 +99,7 @@ func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, fu
 }
 
 func Test_Runtime(t *testing.T) {
-	sources := []string{"host1"}
+	sources := []string{"host1", "localhost"}
 	rt, inventory, cancel := newRuntime(t)
 	defer cancel()
 
@@ -74,11 +107,17 @@ func Test_Runtime(t *testing.T) {
 	options := make([]bee.RunOption, 0)
 	//options = append(options, bee.SetRunSync(true))
 	inventory.AddSources(sources...)
-	data, err := rt.Execute(ctx, "host1", "ping", options...)
+	data, err := rt.Execute(ctx, "localhost", "ping", options...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(string(data))
+
+	//data, err = rt.Execute(ctx, "localhost", "ping", options...)
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+	//t.Log(string(data))
 }
 
 func Test_Copy(t *testing.T) {

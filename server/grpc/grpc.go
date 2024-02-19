@@ -153,56 +153,56 @@ func (s *Server) Put(stream pb.RemoteRPC_PutServer) error {
 
 	for {
 		req, e1 := stream.Recv()
-		if err := s.save(req, fw); err != nil {
-			return rpctype.ToGRPCErr(err)
-		}
-		if e1 != nil {
-			if e1 == io.EOF {
-				break
-			}
+		if e1 != nil && e1 != io.EOF {
 			return rpctype.ToGRPCErr(e1)
 		}
+
+		if req != nil {
+			stat := req.Stat
+			if stat.IsDir {
+				mod := fs.FileMode(stat.Perm)
+				if mod == 0 {
+					mod = os.ModePerm
+				}
+				if err := os.MkdirAll(req.Name, mod); err != nil {
+					return rpctype.ToGRPCErr(err)
+				}
+			} else {
+				var err error
+				if fw == nil || fw.Name() != req.Name {
+					if fw != nil {
+						_ = fw.Close()
+					}
+					dir := filepath.Dir(req.Name)
+					perm := os.FileMode(stat.Perm)
+					if perm == 0 {
+						perm = 0755
+					}
+					if _, err = os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+						_ = os.MkdirAll(dir, perm)
+					}
+					fw, err = os.OpenFile(req.Name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
+					if err != nil {
+						return rpctype.ToGRPCErr(err)
+					}
+				}
+
+				if req != nil && req.Chunk != nil {
+					chunk := req.Chunk
+					data := chunk.Data[:chunk.Length]
+					_, err = fw.Write(data)
+					if err != nil {
+						return rpctype.ToGRPCErr(err)
+					}
+				}
+			}
+		}
+
+		if e1 == io.EOF {
+			break
+		}
 	}
 
-	return nil
-}
-
-func (s *Server) save(req *pb.PutRequest, fw *os.File) error {
-	if req == nil || req.Stat == nil {
-		return nil
-	}
-
-	stat := req.Stat
-	if stat.IsDir {
-		mod := fs.FileMode(stat.Perm)
-		if mod == 0 {
-			mod = os.ModePerm
-		}
-		return os.Mkdir(req.Name, mod)
-	}
-
-	var err error
-	if fw == nil || fw.Name() != req.Name {
-		if fw != nil {
-			_ = fw.Close()
-		}
-		dir := filepath.Dir(req.Name)
-		if _, e1 := os.Stat(dir); errors.Is(e1, os.ErrNotExist) {
-			_ = os.MkdirAll(dir, 0755)
-		}
-		fw, err = os.Create(req.Name)
-		if err != nil {
-			return err
-		}
-	}
-
-	if chunk := req.Chunk; chunk != nil {
-		data := chunk.Data[:chunk.Length]
-		_, err = fw.Write(data)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

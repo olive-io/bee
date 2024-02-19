@@ -46,8 +46,14 @@ func ToGRPCErr(err error) error {
 }
 
 func ParseGRPCErr(err error) error {
+	if err == nil {
+		return nil
+	}
+
 	if vs, ok := status.FromError(err); ok {
 		switch vs.Code() {
+		case codes.OK:
+			return nil
 		case codes.NotFound:
 			return errors.Wrap(client.ErrNotExists, vs.Message())
 		default:

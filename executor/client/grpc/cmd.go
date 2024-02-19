@@ -70,6 +70,8 @@ type Cmd struct {
 	wgMu sync.RWMutex
 	wg   sync.WaitGroup
 
+	ech chan error
+
 	stopping chan struct{}
 	done     chan struct{}
 	stop     chan struct{}
@@ -205,7 +207,7 @@ func (c *Cmd) Start() error {
 
 			if e1 != nil {
 				if e1 != io.EOF {
-					c.stderr.Write([]byte(e1.Error()))
+					c.ech <- e1
 				}
 				break
 			}
@@ -233,6 +235,12 @@ func (c *Cmd) Wait() error {
 	}()
 
 	<-c.stop
+
+	select {
+	case err := <-c.ech:
+		return err
+	default:
+	}
 	return nil
 }
 
@@ -252,6 +260,12 @@ func (w *singleWriter) Write(p []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.b.Write(p)
+}
+
+func (w *singleWriter) Bytes() []byte {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.b.Bytes()
 }
 
 func (w *singleWriter) Close() error {
@@ -276,7 +290,11 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
 	c.stdout = &b
 	c.stderr = &b
 	err := c.Run()
-	return b.b.Bytes(), err
+	if err != nil {
+		return b.Bytes(), err
+	}
+	data := b.Bytes()
+	return data, nil
 }
 
 func (c *Cmd) Close() error {

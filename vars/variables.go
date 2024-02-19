@@ -28,24 +28,30 @@ type VariableManager struct {
 }
 
 func NewVariablesManager(loader *parser.DataLoader, inventory *inv.Manager) *VariableManager {
+	vm := &VariableManager{
+		loader:    loader,
+		inventory: inventory,
+	}
+
+	vm.Reconcile()
+	return vm
+}
+
+func (vm *VariableManager) Reconcile() {
 	groupVariables := map[string]map[string]string{}
-	for name, group := range loader.Groups {
+	groups, _ := vm.loader.MatchGroups("*")
+	for name, group := range groups {
 		groupVariables[name] = group.Vars
 	}
 
+	hosts, _ := vm.loader.MatchHosts("*")
 	hostVariables := map[string]map[string]string{}
-	for name, host := range loader.Hosts {
+	for name, host := range hosts {
 		hostVariables[name] = host.Vars
 	}
 
-	vm := &VariableManager{
-		loader:         loader,
-		inventory:      inventory,
-		groupVariables: groupVariables,
-		hostVariables:  hostVariables,
-	}
-
-	return vm
+	vm.groupVariables = groupVariables
+	vm.hostVariables = hostVariables
 }
 
 func (vm *VariableManager) MustGetHostDefaultValue(host, name, defaultV string) string {

@@ -26,6 +26,6 @@ const (
 	BeeWMPasswdVars = "bee_winrm_passwd"
 
 	BeePlatformVars = "bee_platform"
-	BeeArchVars     = "bee_architecture"
+	BeeArchVars     = "bee_arch"
 	BeeHome         = "bee_home"
 )
