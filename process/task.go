@@ -156,10 +156,10 @@ type Task struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
 
-	Vars map[string]string `json:"vars,omitempty" yaml:"vars,omitempty"`
+	Vars map[string]any `json:"vars,omitempty" yaml:"vars,omitempty"`
 
-	Action string            `json:"action,omitempty" yaml:"action,omitempty"`
-	Args   map[string]string `json:"args,omitempty" yaml:"args,omitempty"`
+	Action string         `json:"action,omitempty" yaml:"action,omitempty"`
+	Args   map[string]any `json:"args,omitempty" yaml:"args,omitempty"`
 
 	RemoteUser string `json:"remote_user,omitempty" yaml:"remote_user,omitempty"`
 
@@ -237,13 +237,7 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 			t.Args = parseTaskArgs(vs)
 		}
 		if ykv, ok := value.(YamlKV); ok {
-			t.Args = map[string]string{}
-			for yk, yv := range ykv {
-				v0, _ := yv.(string)
-				if v0 != "" {
-					t.Args[yk] = v0
-				}
-			}
+			t.Args = ykv
 		}
 	}
 	return
@@ -255,12 +249,12 @@ type Service struct {
 
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
-	Vars map[string]string `json:"vars,omitempty" yaml:"vars,omitempty"`
+	Vars map[string]any `json:"vars,omitempty" yaml:"vars,omitempty"`
 
 	Hosts []string `json:"hosts,omitempty" yaml:"hosts,omitempty"`
 
-	Action string            `json:"action,omitempty" yaml:"action,omitempty"`
-	Args   map[string]string `json:"args,omitempty" yaml:"args,omitempty"`
+	Action string         `json:"action,omitempty" yaml:"action,omitempty"`
+	Args   map[string]any `json:"args,omitempty" yaml:"args,omitempty"`
 
 	Notify []string `json:"notify,omitempty" yaml:"notify,omitempty"`
 }
@@ -312,13 +306,7 @@ func (s *Service) fromKV(kv YamlKV) (err error) {
 			s.Args = parseTaskArgs(vs)
 		}
 		if ykv, ok := value.(YamlKV); ok {
-			s.Args = map[string]string{}
-			for yk, yv := range ykv {
-				v0, _ := yv.(string)
-				if v0 != "" {
-					s.Args[yk] = v0
-				}
-			}
+			s.Args = ykv
 		}
 	}
 	return

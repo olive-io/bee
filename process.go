@@ -141,7 +141,8 @@ LOOP:
 						}
 
 						ropts := append(opts, WithMetadata(tHeaders))
-						data, err := caller(ctx, host, sv.Action, sv.Args, ropts...)
+						in, _ := json.Marshal(sv.Args)
+						data, err := caller(ctx, host, sv.Action, in, ropts...)
 						if err != nil {
 							result.ErrMsg = err.Error()
 							cb.RunnerOkFailed(result)
@@ -179,7 +180,8 @@ LOOP:
 				args := make([]string, 0)
 				args = append(args, task.Action)
 				for name, arg := range task.Args {
-					args = append(args, name+"="+arg)
+					value, _ := json.Marshal(arg)
+					args = append(args, name+"="+strings.ReplaceAll(string(value), "\"", ""))
 				}
 				shell := strings.Join(args, " ")
 				for _, host := range hosts {
@@ -371,8 +373,8 @@ func encodeScriptTask(task *process.Task) (props map[string]any, headers map[str
 
 func decodeScriptTask(props, headers map[string]any) *process.Task {
 	task := &process.Task{
-		Vars: map[string]string{},
-		Args: map[string]string{},
+		Vars: map[string]any{},
+		Args: map[string]any{},
 	}
 	for key, value := range props {
 		if key == "sudo" {
@@ -389,7 +391,7 @@ func decodeScriptTask(props, headers map[string]any) *process.Task {
 			task.Action = value.(string)
 		}
 		if strings.HasPrefix(key, "__arg_") {
-			task.Args[strings.TrimPrefix(key, "__arg_")] = value.(string)
+			task.Args[strings.TrimPrefix(key, "__arg_")] = value
 		}
 
 		if key == "notify" {
@@ -447,8 +449,8 @@ func encodeServiceTask(s *process.Service) (props map[string]any, headers map[st
 
 func decodeServiceTask(props, headers map[string]any) *process.Service {
 	s := &process.Service{
-		Vars: map[string]string{},
-		Args: map[string]string{},
+		Vars: map[string]any{},
+		Args: map[string]any{},
 	}
 	for key, value := range props {
 		if key == "hosts" {
@@ -459,7 +461,7 @@ func decodeServiceTask(props, headers map[string]any) *process.Service {
 			s.Action = value.(string)
 		}
 		if strings.HasPrefix(key, "__arg_") {
-			s.Args[strings.TrimPrefix(key, "__arg_")] = value.(string)
+			s.Args[strings.TrimPrefix(key, "__arg_")] = value
 		}
 
 		if key == "notify" {
@@ -475,7 +477,7 @@ func decodeServiceTask(props, headers map[string]any) *process.Service {
 			s.Name = value.(string)
 		}
 		if strings.HasPrefix(key, "__var_") {
-			s.Vars[strings.TrimPrefix(key, "__var_")] = value.(string)
+			s.Vars[strings.TrimPrefix(key, "__var_")] = value
 		}
 	}
 

@@ -79,12 +79,12 @@ func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, fu
 	options := []bee.Option{
 		bee.SetDir("_output/bee"),
 		bee.SetModulePath(modules),
-		bee.SetCaller(func(ctx context.Context, host, action string, args map[string]string, opts ...bee.RunOption) ([]byte, error) {
+		bee.SetCaller(func(ctx context.Context, host, action string, in []byte, opts ...bee.RunOption) ([]byte, error) {
 			ropt := bee.RunOptions{}
 			for _, opt := range opts {
 				opt(&ropt)
 			}
-			t.Logf("handle service %v\n", ropt.Metadata)
+			t.Logf("handle service %v, msg = %s\n", ropt.Metadata, string(in))
 			return []byte(fmt.Sprintf(`{"result": "ok"}`)), nil
 		}),
 	}

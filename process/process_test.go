@@ -44,7 +44,16 @@ func TestPlayBook_UnmarshalYAML(t *testing.T) {
     notify:
     - restart apache
   - name: ensure apache is running
-    service: name=httpd state=started
+    action: service
+    args:
+      name: httpd 
+      state: started
+      languages:
+        - Go
+        - Javascript
+      size:
+        height: 200px
+        width: 100px
   handlers:
     - name: restart apache
       service: name=httpd state=restarted`

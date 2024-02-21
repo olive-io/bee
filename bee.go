@@ -206,6 +206,7 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 	if err != nil {
 		return nil, err
 	}
+	defer rt.executor.RemoveClient(host)
 
 	sm := rt.applyStableMap(host)
 	if options.sync {
@@ -244,7 +245,7 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 			lg.Error("execute post command", zap.Error(err))
 		}
 	}
-	return out, err
+	return out, nil
 }
 
 func (rt *Runtime) syncRepl(ctx context.Context, conn client.IClient, sm *module.StableMap) error {

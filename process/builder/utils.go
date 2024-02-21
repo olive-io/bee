@@ -17,6 +17,7 @@ package builder
 import (
 	"container/list"
 	"fmt"
+	"reflect"
 
 	json "github.com/json-iterator/go"
 	"github.com/olive-io/bpmn/schema"
@@ -302,7 +303,15 @@ func parseItemValue(v any) (string, schema.ItemType) {
 		}
 		return "false", schema.ItemTypeBoolean
 	default:
+		rv := reflect.ValueOf(v)
+		if rv.Kind() == reflect.Ptr {
+			rv = rv.Elem()
+		}
+		st := schema.ItemTypeObject
+		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+			st = schema.ItemTypeArray
+		}
 		data, _ := json.Marshal(v)
-		return string(data), schema.ItemTypeObject
+		return string(data), st
 	}
 }

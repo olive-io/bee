@@ -183,12 +183,12 @@ func reflectApplyMap(vv reflect.Value, to any) (ok bool, err error) {
 	return
 }
 
-func parseTaskArgs(s string) map[string]string {
+func parseTaskArgs(s string) map[string]any {
 	if strings.TrimSpace(s) == "" {
-		return map[string]string{}
+		return map[string]any{}
 	}
 	parts := strings.Split(s, " ")
-	args := make(map[string]string)
+	args := make(map[string]any)
 	for _, part := range parts {
 		be, af, ok := strings.Cut(part, "=")
 		if !ok {

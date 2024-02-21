@@ -19,8 +19,8 @@ import "strings"
 type Handler struct {
 	Name string `json:"name" yaml:"name"`
 
-	Action string            `json:"action" yaml:"Action"`
-	Args   map[string]string `json:"args" yaml:"args"`
+	Action string         `json:"action,omitempty" yaml:"action,omitempty"`
+	Args   map[string]any `json:"args,omitempty" yaml:"args,omitempty"`
 }
 
 func (h *Handler) fromKV(kv YamlKV) error {

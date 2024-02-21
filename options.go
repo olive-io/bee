@@ -30,7 +30,7 @@ var (
 	DefaultParallel = runtime.NumCPU() * 2
 )
 
-type Callable func(ctx context.Context, host, action string, args map[string]string, opts ...RunOption) ([]byte, error)
+type Callable func(ctx context.Context, host, action string, in []byte, opts ...RunOption) ([]byte, error)
 
 type Options struct {
 	dir        string

@@ -75,6 +75,11 @@ func TestRuntime_PlayWithService(t *testing.T) {
 				Kind:   "service",
 				Id:     "t2",
 				Action: "test",
+				Args: map[string]any{
+					"name":      "lack",
+					"text":      "This is an easy text",
+					"languages": []string{"Go", "Javascript"},
+				},
 			},
 		},
 	}

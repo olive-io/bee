@@ -10,8 +10,8 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
 	github.com/json-iterator/go v1.1.12
-	github.com/olive-io/bpmn v1.0.0
-	github.com/olive-io/bpmn/schema v1.0.0
+	github.com/olive-io/bpmn v1.1.0
+	github.com/olive-io/bpmn/schema v1.1.0
 	github.com/olive-io/winrm v1.0.1
 	github.com/panjf2000/ants/v2 v2.9.0
 	github.com/pkg/sftp v1.13.6
@@ -22,9 +22,9 @@ require (
 	github.com/tidwall/btree v1.7.0
 	github.com/vine-io/pkg/xname v0.1.0
 	go.uber.org/multierr v1.11.0
-	go.uber.org/zap v1.26.0
-	golang.org/x/crypto v0.18.0
-	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3
+	go.uber.org/zap v1.27.0
+	golang.org/x/crypto v0.19.0
+	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 	google.golang.org/grpc v1.61.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -75,7 +75,7 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/tidwall/transform v0.0.0-20201103190739-32f242e2dbde // indirect
 	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
