@@ -298,27 +298,31 @@ func (c *Client) Put(ctx context.Context, src, dst string, opts ...client.PutOpt
 	buf := make([]byte, options.CacheSize)
 	fn := options.Trace
 	if !stat.IsDir() {
-		return c.put(ctx, stream, src, dst, buf, fn)
+		err = c.put(ctx, stream, src, dst, buf, fn)
+	} else {
+		err = filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if path == dst {
+				return nil
+			}
+
+			sub := strings.TrimPrefix(path, src)
+			dest := filepath.Join(dst, sub)
+			return c.put(ctx, stream, path, dest, buf, fn)
+		})
 	}
-
-	err = filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if path == dst {
-			return nil
-		}
-
-		sub := strings.TrimPrefix(path, src)
-		dest := filepath.Join(dst, sub)
-		return c.put(ctx, stream, path, dest, buf, fn)
-	})
 
 	if err != nil {
 		return err
 	}
 
-	return rpctype.ParseGRPCErr(stream.CloseSend())
+	if err = rpctype.ParseGRPCErr(stream.CloseSend()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) put(ctx context.Context, stream pb.RemoteRPC_PutClient, src, dst string, buf []byte, fn client.IOTraceFn) error {

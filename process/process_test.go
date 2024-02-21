@@ -35,7 +35,7 @@ tasks:
   kind: process
   tasks:
   - name: first child task
-    ping: 
+    action: ping 
 - name: write the apache config file
   kind: service
   template:

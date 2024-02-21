@@ -232,7 +232,18 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 			}
 			continue
 		}
-		t.Action = key
+
+		if key == "action" {
+			_, err = kv.Apply("action", &t.Action)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		if t.Action == "" {
+			t.Action = key
+		}
 		if vs, ok := value.(string); ok {
 			t.Args = parseTaskArgs(vs)
 		}
@@ -301,7 +312,17 @@ func (s *Service) fromKV(kv YamlKV) (err error) {
 			continue
 		}
 
-		s.Action = key
+		if key == "action" {
+			_, err = kv.Apply("action", &s.Action)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		if key == "" {
+			s.Action = key
+		}
 		if vs, ok := value.(string); ok {
 			s.Args = parseTaskArgs(vs)
 		}

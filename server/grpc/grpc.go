@@ -145,11 +145,6 @@ func (s *Server) get(stream pb.RemoteRPC_GetServer, name string, buf []byte) err
 
 func (s *Server) Put(stream pb.RemoteRPC_PutServer) error {
 	var fw *os.File
-	defer func() {
-		if fw != nil {
-			_ = fw.Close()
-		}
-	}()
 
 	for {
 		req, e1 := stream.Recv()
@@ -181,7 +176,7 @@ func (s *Server) Put(stream pb.RemoteRPC_PutServer) error {
 					if _, err = os.Stat(dir); errors.Is(err, os.ErrNotExist) {
 						_ = os.MkdirAll(dir, perm)
 					}
-					fw, err = os.OpenFile(req.Name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
+					fw, err = os.OpenFile(req.Name, os.O_RDWR|os.O_CREATE|os.O_TRUNC|os.O_SYNC, perm)
 					if err != nil {
 						return rpctype.ToGRPCErr(err)
 					}
@@ -201,6 +196,14 @@ func (s *Server) Put(stream pb.RemoteRPC_PutServer) error {
 		if e1 == io.EOF {
 			break
 		}
+	}
+
+	if fw != nil {
+		_ = fw.Close()
+	}
+
+	if err := stream.SendAndClose(&pb.PutResponse{}); err != nil {
+		return err
 	}
 
 	return nil
