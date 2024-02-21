@@ -21,42 +21,42 @@ import (
 )
 
 func TestPlayBook_UnmarshalYAML(t *testing.T) {
-	text := `---
-- name: this is a test playbook
-  hosts: webservers
-  vars:
-    http_port: 80
-    max_clients: 200
-  remote_user: root
+	text := `
+name: this is a test playbook
+hosts: webservers
+vars:
+  http_port: 80
+  max_clients: 200
+remote_user: root
+tasks:
+- name: ensure apache is at the latest version
+  yum: pkg=httpd state=latest
+- name: child process
+  kind: process
   tasks:
-  - name: ensure apache is at the latest version
-    yum: pkg=httpd state=latest
-  - name: child process
-    kind: process
-    tasks:
-    - name: first child task
-      ping: 
-  - name: write the apache config file
-    kind: service
-    template:
-      src: /srv/httpd.j2
-      dest: /etc/httpd.conf
-    notify:
-    - restart apache
-  - name: ensure apache is running
-    action: service
-    args:
-      name: httpd 
-      state: started
-      languages:
-        - Go
-        - Javascript
-      size:
-        height: 200px
-        width: 100px
-  handlers:
-    - name: restart apache
-      service: name=httpd state=restarted`
+  - name: first child task
+    ping: 
+- name: write the apache config file
+  kind: service
+  template:
+    src: /srv/httpd.j2
+    dest: /etc/httpd.conf
+  notify:
+  - restart apache
+- name: ensure apache is running
+  action: service
+  args:
+    name: httpd 
+    state: started
+    languages:
+      - Go
+      - Javascript
+    size:
+      height: 200px
+      width: 100px
+handlers:
+  - name: restart apache
+    service: name=httpd state=restarted`
 
 	pr := &Process{}
 	err := yaml.Unmarshal([]byte(text), pr)

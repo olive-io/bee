@@ -33,47 +33,73 @@ type Process struct {
 }
 
 func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
-	var kvs []YamlKV
-	if err := unmarshal(&kvs); err != nil {
+	var kv YamlKV
+	if err = unmarshal(&kv); err != nil {
 		return err
 	}
-	for _, kv := range kvs {
-		_, err = kv.Apply("name", &p.Name)
-		if err != nil {
-			return
+
+	for key, value := range kv {
+		if key == "name" {
+			_, err = kv.Apply("name", &p.Name)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		_, err = kv.Apply("id", &p.Id)
-		if err != nil {
-			return err
+
+		if key == "id" {
+			_, err = kv.Apply("id", &p.Id)
+			if err != nil {
+				return err
+			}
+			continue
 		}
-		_, err = kv.ApplyArray("hosts", &p.Hosts)
-		if err != nil {
-			return
+
+		if key == "hosts" {
+			_, err = kv.ApplyArray("hosts", &p.Hosts)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		_, err = kv.ApplyMap("vars", &p.Vars)
-		if err != nil {
-			return
+
+		if key == "vars" {
+			_, err = kv.ApplyMap("vars", &p.Vars)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		_, err = kv.Apply("remote_user", &p.RemoteUser)
-		if err != nil {
-			return
+
+		if key == "remote_user" {
+			_, err = kv.Apply("remote_user", &p.RemoteUser)
+			if err != nil {
+				return
+			}
 		}
-		_, err = kv.Apply("sudo", &p.Sudo)
-		if err != nil {
-			return
+
+		if key == "sudo" {
+			_, err = kv.Apply("sudo", &p.Sudo)
+			if err != nil {
+				return
+			}
+			continue
 		}
-		_, err = kv.Apply("sudo_user", &p.SudoUser)
-		if err != nil {
-			return
+
+		if key == "sudo_user" {
+			_, err = kv.Apply("sudo_user", &p.SudoUser)
+			if err != nil {
+				return
+			}
 		}
-		if values, ok := kv["tasks"]; ok {
-			vv, ok := values.([]any)
+
+		if key == "tasks" {
+			vv, ok := value.([]any)
 			if !ok {
 				continue
 			}
 			p.Tasks = make([]ITask, len(vv))
 			for i, item := range vv {
-
 				var kind string
 				ykv := item.(YamlKV)
 				if exists, _ := ykv.Apply("kind", &kind); exists {
@@ -99,9 +125,11 @@ func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 					p.Tasks[i] = task
 				}
 			}
+			continue
 		}
-		if values, ok := kv["handlers"]; ok {
-			vv, ok := values.([]any)
+
+		if key == "handlers" {
+			vv, ok := value.([]any)
 			if !ok {
 				continue
 			}
