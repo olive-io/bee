@@ -16,6 +16,7 @@ package builtin
 
 import (
 	"github.com/d5/tengo/v2"
+	"github.com/olive-io/bee/tengo/builtin/exec"
 	"github.com/olive-io/bee/tengo/builtin/flag"
 	"github.com/olive-io/bee/tengo/builtin/trace"
 )
@@ -25,4 +26,5 @@ var BuiltinMap = tengo.NewModuleMap()
 func init() {
 	BuiltinMap.Add("flag", flag.Importable)
 	BuiltinMap.Add("trace", trace.Importable)
+	BuiltinMap.Add("exec", exec.Importable)
 }
