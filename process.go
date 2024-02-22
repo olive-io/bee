@@ -21,6 +21,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	json "github.com/json-iterator/go"
+	"github.com/muyo/sno"
 	"github.com/olive-io/bee/plugins/callback"
 	"github.com/olive-io/bee/plugins/filter"
 	"github.com/olive-io/bee/process"
@@ -34,20 +35,19 @@ import (
 	"github.com/olive-io/bpmn/process/instance"
 	"github.com/olive-io/bpmn/schema"
 	"github.com/olive-io/bpmn/tracing"
+	"go.uber.org/zap"
 )
 
 func (rt *Runtime) Play(ctx context.Context, pr *process.Process, opts ...RunOption) error {
-	definitions, dataObjects, properties, err := rt.BuildBpmnProcess(pr)
+	definitions, taskMap, dataObjects, properties, err := rt.BuildBpmnProcess(pr)
 	if err != nil {
 		return err
 	}
 
-	return rt.RunBpmnProcess(ctx, definitions, dataObjects, properties, opts...)
+	return rt.RunBpmnProcess(ctx, definitions, taskMap, dataObjects, properties, opts...)
 }
 
-func (rt *Runtime) RunBpmnProcess(
-	ctx context.Context, definitions *schema.Definitions,
-	dataObjects, properties map[string]any, opts ...RunOption) error {
+func (rt *Runtime) RunBpmnProcess(ctx context.Context, definitions *schema.Definitions, taskMap map[string]process.ITask, dataObjects, properties map[string]any, opts ...RunOption) error {
 
 	lg := rt.Logger()
 
@@ -102,6 +102,8 @@ func (rt *Runtime) RunBpmnProcess(
 	}
 	defer ins.Tracer.Unsubscribe(traces)
 
+	runTasks := make([]process.ITask, 0)
+
 LOOP:
 	for {
 		var trace tracing.ITrace
@@ -127,6 +129,9 @@ LOOP:
 
 			switch act.(type) {
 			case *service.ServiceTask:
+				if task, ok := taskMap[*id]; ok {
+					runTasks = append(runTasks, task)
+				}
 
 				sv := decodeServiceTask(tProps, tHeaders)
 				hosts := sv.Hosts
@@ -170,6 +175,9 @@ LOOP:
 				}
 
 			case *script.ScriptTask:
+				if task, ok := taskMap[*id]; ok {
+					runTasks = append(runTasks, task)
+				}
 
 				task := decodeScriptTask(tProps, tHeaders)
 				hosts := task.Hosts
@@ -219,7 +227,8 @@ LOOP:
 
 			tt.Do(activity.WithProperties(rspProperties))
 		case tracing.ErrorTrace:
-			return tt.Error
+			err = tt.Error
+			break LOOP
 		case flow.CeaseFlowTrace:
 			break LOOP
 		default:
@@ -228,14 +237,128 @@ LOOP:
 	}
 	ins.WaitUntilComplete(ctx)
 
+	if err != nil {
+		for i := len(runTasks) - 1; i >= 0; i-- {
+			task := runTasks[i]
+
+			caught, ok := task.(process.ICatchTask)
+			if !ok {
+				continue
+			}
+
+			fields := make([]zap.Field, 0)
+			if named, ok := task.(process.INamedTask); ok {
+				fields = append(fields,
+					zap.String("name", named.GetName()),
+					zap.String("id", named.GetId()))
+			}
+
+			catch := caught.GetCatch()
+			if catch == nil {
+				lg.Debug("skip task catch", fields...)
+				continue
+			}
+
+			hosts := caught.GetHosts()
+			if len(hosts) == 0 {
+				hosts = sources
+			}
+
+			fields = append(fields, zap.Stringer("handler", catch))
+			lg.Info("handle task catch", fields...)
+
+			_ = rt.handle(ctx, hosts, catch)
+		}
+	}
+
+	for i := len(runTasks) - 1; i >= 0; i-- {
+		task := runTasks[i]
+
+		caught, ok := task.(process.ICatchTask)
+		if !ok {
+			continue
+		}
+
+		fields := make([]zap.Field, 0)
+		if named, ok := task.(process.INamedTask); ok {
+			fields = append(fields,
+				zap.String("name", named.GetName()),
+				zap.String("id", named.GetId()))
+		}
+
+		finish := caught.GetFinish()
+		if finish == nil {
+			lg.Debug("skip service catch", fields...)
+			continue
+		}
+
+		hosts := caught.GetHosts()
+		if len(hosts) == 0 {
+			hosts = sources
+		}
+
+		fields = append(fields, zap.Stringer("handler", finish))
+		lg.Info("handle service finish", fields...)
+
+		_ = rt.handle(ctx, hosts, finish)
+	}
+
+	return err
+}
+
+func (rt *Runtime) handle(ctx context.Context, hosts []string, handler *process.Handler, opts ...RunOption) error {
+	switch handler.Kind {
+	case process.ServiceKey:
+		caller := rt.opts.caller
+		if caller == nil {
+			return nil
+		}
+
+		for _, host := range hosts {
+			ropts := append(opts)
+			in, _ := json.Marshal(handler.Args)
+			data, err := caller(ctx, host, handler.Action, in, ropts...)
+			if err != nil {
+				return err
+			}
+
+			stdout := map[string]any{}
+			if err = json.Unmarshal(data, &stdout); err != nil {
+			}
+		}
+
+	case process.TaskKey:
+		args := make([]string, 0)
+		args = append(args, handler.Action)
+		for name, arg := range handler.Args {
+			value, _ := json.Marshal(arg)
+			args = append(args, name+"="+strings.ReplaceAll(string(value), "\"", ""))
+		}
+		shell := strings.Join(args, " ")
+		for _, host := range hosts {
+			ropts := append(opts)
+			data, err := rt.Execute(ctx, host, shell, ropts...)
+			if err != nil {
+				return err
+			}
+
+			stdout := map[string]any{}
+			if err = json.Unmarshal(data, &stdout); err != nil {
+			}
+		}
+	}
+
 	return nil
 }
 
-func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, map[string]any, map[string]any, error) {
+func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, map[string]process.ITask, map[string]any, map[string]any, error) {
 	pb := builder.NewProcessDefinitionsBuilder(pr.Name)
+	if pr.Id == "" {
+		pr.Id = newSnoId()
+	}
 	pb.Id(pr.Id)
-	pb.Start()
 
+	taskMap := map[string]process.ITask{}
 	dataObjects := map[string]any{}
 	properties := map[string]any{}
 
@@ -247,17 +370,21 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 		properties["sudo_user"] = pr.SudoUser
 	}
 
+	pb.Start()
 	for idx := range pr.Tasks {
 		st := pr.Tasks[idx]
 		switch act := st.(type) {
 		case *process.ChildProcess:
-			out, err := buildChildProcess(act)
+			out, err := buildChildProcess(act, &taskMap)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, nil, nil, err
 			}
 			pb.AppendElem(out)
 		case *process.Task:
 			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
 			sb.SetId(act.Id)
 			props, headers := encodeScriptTask(act)
 			for key, value := range props {
@@ -267,8 +394,12 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 				sb.SetHeader(key, value)
 			}
 			pb.AppendElem(sb.Out())
+			taskMap[act.Id] = act
 		case *process.Service:
 			sb := builder.NewServiceTaskBuilder(act.Name)
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
 			sb.SetId(act.Id)
 			props, headers := encodeServiceTask(act)
 			for key, value := range props {
@@ -278,6 +409,7 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 				sb.SetHeader(key, value)
 			}
 			pb.AppendElem(sb.Out())
+			taskMap[act.Id] = act
 		}
 	}
 	pb.End()
@@ -288,21 +420,34 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 
 	definitions, err := pb.ToDefinitions()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return definitions, dataObjects, properties, nil
+	return definitions, taskMap, dataObjects, properties, nil
 }
 
-func buildChildProcess(pr *process.ChildProcess) (*builder.SubProcessBuilder, error) {
+func buildChildProcess(pr *process.ChildProcess, taskMap *map[string]process.ITask) (*builder.SubProcessBuilder, error) {
 	pb := builder.NewSubProcessDefinitionsBuilder(pr.Name)
+	if pr.Id == "" {
+		pr.Id = newSnoId()
+	}
 	pb.Id(pr.Id)
-	pb.Start()
 
+	pb.Start()
 	for idx := range pr.Tasks {
 		st := pr.Tasks[idx]
+		if act, ok := st.(*process.ChildProcess); ok {
+			out, err := buildChildProcess(act, taskMap)
+			if err != nil {
+				return nil, err
+			}
+			pb.AppendElem(out)
+		}
 		if act, ok := st.(*process.Task); ok {
 			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
 			sb.SetId(act.Id)
 			props, headers := encodeScriptTask(act)
 			for key, value := range props {
@@ -312,9 +457,13 @@ func buildChildProcess(pr *process.ChildProcess) (*builder.SubProcessBuilder, er
 				sb.SetHeader(key, value)
 			}
 			pb.AppendElem(sb.Out())
+			(*taskMap)[act.Id] = act
 		}
 		if act, ok := st.(*process.Service); ok {
 			sb := builder.NewServiceTaskBuilder(act.Name)
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
 			sb.SetId(act.Id)
 			props, headers := encodeServiceTask(act)
 			for key, value := range props {
@@ -324,6 +473,7 @@ func buildChildProcess(pr *process.ChildProcess) (*builder.SubProcessBuilder, er
 				sb.SetHeader(key, value)
 			}
 			pb.AppendElem(sb.Out())
+			(*taskMap)[act.Id] = act
 		}
 	}
 
@@ -482,4 +632,8 @@ func decodeServiceTask(props, headers map[string]any) *process.Service {
 	}
 
 	return s
+}
+
+func newSnoId() string {
+	return string(sno.New(0).Bytes())
 }

@@ -17,10 +17,22 @@ package process
 const (
 	ChildProcessKey = "process"
 	ServiceKey      = "service"
+	TaskKey         = "task"
 )
 
 type ITask interface {
 	fromKV(kv YamlKV) (err error)
+}
+
+type INamedTask interface {
+	GetName() string
+	GetId() string
+}
+
+type ICatchTask interface {
+	GetHosts() []string
+	GetCatch() *Handler
+	GetFinish() *Handler
 }
 
 type ChildProcess struct {
@@ -168,6 +180,9 @@ type Task struct {
 
 	Hosts []string `json:"hosts,omitempty" yaml:"hosts,omitempty"`
 
+	Catch  *Handler `json:"catch,omitempty" yaml:"catch,omitempty"`
+	Finish *Handler `json:"finish,omitempty" yaml:"finish,omitempty"`
+
 	Notify []string `json:"notify,omitempty" yaml:"notify,omitempty"`
 }
 
@@ -233,6 +248,26 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 			continue
 		}
 
+		if key == "catch" {
+			if vv, ok := value.(YamlKV); ok {
+				t.Catch = new(Handler)
+				if err = t.Catch.fromKV(vv); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
+		if key == "finish" {
+			if vv, ok := value.(YamlKV); ok {
+				t.Finish = new(Handler)
+				if err = t.Finish.fromKV(vv); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
 		if key == "action" {
 			_, err = kv.Apply("action", &t.Action)
 			if err != nil {
@@ -254,6 +289,26 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 	return
 }
 
+func (t *Task) GetName() string {
+	return t.Name
+}
+
+func (t *Task) GetId() string {
+	return t.Id
+}
+
+func (t *Task) GetHosts() []string {
+	return t.Hosts
+}
+
+func (t *Task) GetCatch() *Handler {
+	return t.Catch
+}
+
+func (t *Task) GetFinish() *Handler {
+	return t.Finish
+}
+
 type Service struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
@@ -266,6 +321,9 @@ type Service struct {
 
 	Action string         `json:"action,omitempty" yaml:"action,omitempty"`
 	Args   map[string]any `json:"args,omitempty" yaml:"args,omitempty"`
+
+	Catch  *Handler `json:"catch,omitempty" yaml:"catch,omitempty"`
+	Finish *Handler `json:"finish,omitempty" yaml:"finish,omitempty"`
 
 	Notify []string `json:"notify,omitempty" yaml:"notify,omitempty"`
 }
@@ -312,6 +370,26 @@ func (s *Service) fromKV(kv YamlKV) (err error) {
 			continue
 		}
 
+		if key == "catch" {
+			if vv, ok := value.(YamlKV); ok {
+				s.Catch = new(Handler)
+				if err = s.Catch.fromKV(vv); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
+		if key == "finish" {
+			if vv, ok := value.(YamlKV); ok {
+				s.Finish = new(Handler)
+				if err = s.Finish.fromKV(vv); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
 		if key == "action" {
 			_, err = kv.Apply("action", &s.Action)
 			if err != nil {
@@ -331,4 +409,24 @@ func (s *Service) fromKV(kv YamlKV) (err error) {
 		}
 	}
 	return
+}
+
+func (s *Service) GetName() string {
+	return s.Name
+}
+
+func (s *Service) GetId() string {
+	return s.Id
+}
+
+func (s *Service) GetHosts() []string {
+	return s.Hosts
+}
+
+func (s *Service) GetCatch() *Handler {
+	return s.Catch
+}
+
+func (s *Service) GetFinish() *Handler {
+	return s.Finish
 }

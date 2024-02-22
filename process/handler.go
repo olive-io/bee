@@ -14,28 +14,63 @@
 
 package process
 
-import "strings"
+import (
+	"fmt"
+)
 
 type Handler struct {
-	Name string `json:"name" yaml:"name"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
 	Action string         `json:"action,omitempty" yaml:"action,omitempty"`
 	Args   map[string]any `json:"args,omitempty" yaml:"args,omitempty"`
 }
 
-func (h *Handler) fromKV(kv YamlKV) error {
+func (h *Handler) fromKV(kv YamlKV) (err error) {
 	for key, value := range kv {
 		if key == "name" {
-			_, err := kv.Apply("name", &h.Name)
+			_, err = kv.Apply("name", &h.Name)
 			if err != nil {
 				return err
 			}
 			continue
 		}
-		h.Action = key
-		if vs, ok := value.(string); ok && len(strings.TrimSpace(vs)) != 0 {
+		if key == "id" {
+			_, err = kv.Apply("id", &h.Id)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if key == "action" {
+			_, err = kv.Apply("action", &h.Action)
+			if err != nil {
+				return
+			}
+			continue
+		}
+		if key == "kind" {
+			_, err = kv.Apply("kind", &h.Kind)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		if key == "" {
+			h.Action = key
+		}
+		if vs, ok := value.(string); ok {
 			h.Args = parseTaskArgs(vs)
+		}
+		if ykv, ok := value.(YamlKV); ok {
+			h.Args = ykv
 		}
 	}
 	return nil
+}
+
+func (h *Handler) String() string {
+	return fmt.Sprintf(`{"%s": %s}`, h.Name, h.Action)
 }

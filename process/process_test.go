@@ -41,6 +41,12 @@ tasks:
   template:
     src: /srv/httpd.j2
     dest: /etc/httpd.conf
+  catch:
+    name: doing it while failed
+    service: name=httpd state=restarted
+  finish:
+    name: always do it
+    service: name=httpd state=restarted 
   notify:
   - restart apache
 - name: ensure apache is running

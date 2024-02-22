@@ -69,6 +69,27 @@ func TestRuntime_PlayWithService(t *testing.T) {
 				Name:   "first task",
 				Id:     "t1",
 				Action: "ping",
+				Args: map[string]any{
+					"data": "crash",
+				},
+				Catch: &process.Handler{
+					Name:   "restart service",
+					Kind:   "service",
+					Action: "service",
+					Args: map[string]any{
+						"name":  "httpd",
+						"state": "latest",
+					},
+				},
+				Finish: &process.Handler{
+					Name:   "restart service",
+					Kind:   "service",
+					Action: "service",
+					Args: map[string]any{
+						"name":  "nginx",
+						"state": "latest",
+					},
+				},
 			},
 			&process.Service{
 				Name:   "second task",
@@ -79,6 +100,24 @@ func TestRuntime_PlayWithService(t *testing.T) {
 					"name":      "lack",
 					"text":      "This is an easy text",
 					"languages": []string{"Go", "Javascript"},
+				},
+				Catch: &process.Handler{
+					Name:   "restart service",
+					Kind:   "service",
+					Action: "service",
+					Args: map[string]any{
+						"name":  "httpd",
+						"state": "latest",
+					},
+				},
+				Finish: &process.Handler{
+					Name:   "restart service",
+					Kind:   "service",
+					Action: "service",
+					Args: map[string]any{
+						"name":  "nginx",
+						"state": "latest",
+					},
 				},
 			},
 		},

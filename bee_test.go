@@ -16,6 +16,8 @@ package bee_test
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -85,6 +87,12 @@ func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, fu
 				opt(&ropt)
 			}
 			t.Logf("handle service %v, msg = %s\n", ropt.Metadata, string(in))
+
+			var m map[string]any
+			_ = json.Unmarshal(in, &m)
+			if _, ok := m["catch"]; ok {
+				return nil, errors.New("catch error")
+			}
 			return []byte(fmt.Sprintf(`{"result": "ok"}`)), nil
 		}),
 	}
