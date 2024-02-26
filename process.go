@@ -35,19 +35,21 @@ import (
 	"github.com/olive-io/bpmn/process/instance"
 	"github.com/olive-io/bpmn/schema"
 	"github.com/olive-io/bpmn/tracing"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 func (rt *Runtime) Play(ctx context.Context, pr *process.Process, opts ...RunOption) error {
-	definitions, taskMap, dataObjects, properties, err := rt.BuildBpmnProcess(pr)
+	definitions, dataObjects, properties, err := rt.BuildBpmnProcess(pr)
 	if err != nil {
 		return err
 	}
 
-	return rt.RunBpmnProcess(ctx, definitions, taskMap, dataObjects, properties, opts...)
+	return rt.RunBpmnProcess(ctx, definitions, dataObjects, properties, opts...)
 }
 
-func (rt *Runtime) RunBpmnProcess(ctx context.Context, definitions *schema.Definitions, taskMap map[string]process.ITask, dataObjects, properties map[string]any, opts ...RunOption) error {
+func (rt *Runtime) RunBpmnProcess(ctx context.Context, definitions *schema.Definitions, dataObjects, properties map[string]string, opts ...RunOption) error {
 
 	lg := rt.Logger()
 
@@ -68,7 +70,7 @@ func (rt *Runtime) RunBpmnProcess(ctx context.Context, definitions *schema.Defin
 
 	var sources []string
 	if v, ok := properties["hosts"]; ok {
-		sources, _ = v.([]string)
+		sources = strings.Split(v, ",")
 	}
 
 	if len(sources) == 0 {
@@ -81,9 +83,18 @@ func (rt *Runtime) RunBpmnProcess(ctx context.Context, definitions *schema.Defin
 
 	processElement := (*definitions.Processes())[0]
 	proc := bprocess.New(&processElement, definitions)
+
+	_properties := map[string]any{}
+	for key, value := range _properties {
+		_properties[key] = value
+	}
+	_dataObjects := map[string]any{}
+	for key, value := range dataObjects {
+		_dataObjects[key] = value
+	}
 	bpmnOptions := []instance.Option{
-		instance.WithDataObjects(dataObjects),
-		instance.WithVariables(properties),
+		instance.WithVariables(_properties),
+		instance.WithDataObjects(_dataObjects),
 	}
 
 	ins, err := proc.Instantiate(bpmnOptions...)
@@ -129,11 +140,9 @@ LOOP:
 
 			switch act.(type) {
 			case *service.ServiceTask:
-				if task, ok := taskMap[*id]; ok {
-					runTasks = append(runTasks, task)
-				}
 
 				sv := decodeServiceTask(tProps, tHeaders)
+				runTasks = append(runTasks, sv)
 				hosts := sv.Hosts
 				if len(hosts) == 0 {
 					hosts = sources
@@ -152,7 +161,7 @@ LOOP:
 							result.ErrMsg = err.Error()
 							cb.RunnerOkFailed(result)
 							tt.Do(activity.WithErr(err))
-							goto LOOP
+							break LOOP
 						}
 
 						stdout := map[string]any{}
@@ -160,11 +169,10 @@ LOOP:
 							result.ErrMsg = err.Error()
 							cb.RunnerOkFailed(result)
 							tt.Do(activity.WithErr(err))
-							goto LOOP
+							break LOOP
 						}
 
 						stdout = ft.OnPostTaskStdout(*id, stdout)
-
 						result.Stdout = stdout
 						for key, value := range stdout {
 							rspProperties[key] = value
@@ -175,11 +183,9 @@ LOOP:
 				}
 
 			case *script.ScriptTask:
-				if task, ok := taskMap[*id]; ok {
-					runTasks = append(runTasks, task)
-				}
 
 				task := decodeScriptTask(tProps, tHeaders)
+				runTasks = append(runTasks, task)
 				hosts := task.Hosts
 				if len(hosts) == 0 {
 					hosts = sources
@@ -203,7 +209,7 @@ LOOP:
 						result.ErrMsg = err.Error()
 						cb.RunnerOkFailed(result)
 						tt.Do(activity.WithErr(err))
-						goto LOOP
+						break LOOP
 					}
 
 					stdout := map[string]any{}
@@ -211,11 +217,10 @@ LOOP:
 						result.ErrMsg = err.Error()
 						cb.RunnerOkFailed(result)
 						tt.Do(activity.WithErr(err))
-						goto LOOP
+						break LOOP
 					}
 
 					stdout = ft.OnPostTaskStdout(*id, stdout)
-
 					result.Stdout = stdout
 					for key, value := range stdout {
 						rspProperties[key] = value
@@ -351,18 +356,17 @@ func (rt *Runtime) handle(ctx context.Context, hosts []string, handler *process.
 	return nil
 }
 
-func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, map[string]process.ITask, map[string]any, map[string]any, error) {
+func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, map[string]string, map[string]string, error) {
 	pb := builder.NewProcessDefinitionsBuilder(pr.Name)
 	if pr.Id == "" {
 		pr.Id = newSnoId()
 	}
 	pb.Id(pr.Id)
 
-	taskMap := map[string]process.ITask{}
-	dataObjects := map[string]any{}
-	properties := map[string]any{}
+	dataObjects := map[string]string{}
+	properties := map[string]string{}
 
-	properties["hosts"] = pr.Hosts
+	hosts := pr.Hosts
 	if pr.Sudo {
 		properties["sudo"] = ""
 	}
@@ -371,14 +375,20 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 	}
 
 	pb.Start()
+
+	mappingPrefix := "__step_mapping__"
 	for idx := range pr.Tasks {
 		st := pr.Tasks[idx]
 		switch act := st.(type) {
 		case *process.ChildProcess:
-			out, err := buildChildProcess(act, &taskMap)
+			out, props, err := buildChildProcess(act)
 			if err != nil {
-				return nil, nil, nil, nil, err
+				return nil, nil, nil, err
 			}
+			for key, value := range props {
+				properties[key] = value
+			}
+			hosts = append(hosts, act.Hosts...)
 			pb.AppendElem(out)
 		case *process.Task:
 			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
@@ -393,8 +403,9 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 			for key, value := range headers {
 				sb.SetHeader(key, value)
 			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
 			pb.AppendElem(sb.Out())
-			taskMap[act.Id] = act
 		case *process.Service:
 			sb := builder.NewServiceTaskBuilder(act.Name)
 			if act.Id == "" {
@@ -408,8 +419,9 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 			for key, value := range headers {
 				sb.SetHeader(key, value)
 			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
 			pb.AppendElem(sb.Out())
-			taskMap[act.Id] = act
 		}
 	}
 	pb.End()
@@ -417,29 +429,38 @@ func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, m
 	for key, property := range pb.PopProperty() {
 		properties[key] = property
 	}
+	properties["hosts"] = strings.Join(lo.Uniq[string](hosts), ",")
 
 	definitions, err := pb.ToDefinitions()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return definitions, taskMap, dataObjects, properties, nil
+	return definitions, dataObjects, properties, nil
 }
 
-func buildChildProcess(pr *process.ChildProcess, taskMap *map[string]process.ITask) (*builder.SubProcessBuilder, error) {
+func buildChildProcess(pr *process.ChildProcess) (*builder.SubProcessBuilder, map[string]string, error) {
 	pb := builder.NewSubProcessDefinitionsBuilder(pr.Name)
 	if pr.Id == "" {
 		pr.Id = newSnoId()
 	}
 	pb.Id(pr.Id)
 
+	properties := map[string]string{}
+	hosts := pr.Hosts
+
 	pb.Start()
+
+	mappingPrefix := "__step_mapping__"
 	for idx := range pr.Tasks {
 		st := pr.Tasks[idx]
 		if act, ok := st.(*process.ChildProcess); ok {
-			out, err := buildChildProcess(act, taskMap)
+			out, props, err := buildChildProcess(act)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			for key, value := range props {
+				properties[key] = value
 			}
 			pb.AppendElem(out)
 		}
@@ -456,8 +477,9 @@ func buildChildProcess(pr *process.ChildProcess, taskMap *map[string]process.ITa
 			for key, value := range headers {
 				sb.SetHeader(key, value)
 			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
 			pb.AppendElem(sb.Out())
-			(*taskMap)[act.Id] = act
 		}
 		if act, ok := st.(*process.Service); ok {
 			sb := builder.NewServiceTaskBuilder(act.Name)
@@ -472,163 +494,54 @@ func buildChildProcess(pr *process.ChildProcess, taskMap *map[string]process.ITa
 			for key, value := range headers {
 				sb.SetHeader(key, value)
 			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
 			pb.AppendElem(sb.Out())
-			(*taskMap)[act.Id] = act
 		}
 	}
+	pr.Hosts = lo.Uniq[string](hosts)
 
 	pb.End()
-	return pb.Out(), nil
+	return pb.Out(), properties, nil
 }
 
 func encodeScriptTask(task *process.Task) (props map[string]any, headers map[string]any) {
 	props = map[string]any{}
 	headers = map[string]any{}
 
-	if task.Id != "" {
-		headers["id"] = task.Id
-	}
-	if task.Name != "" {
-		headers["name"] = task.Name
-	}
-	if task.RemoteUser != "" {
-		headers["remote_user"] = task.RemoteUser
-	}
-	for key, value := range task.Vars {
-		headers["__var_"+key] = value
-	}
-
-	if task.Sudo {
-		props["sudo"] = ""
-	}
-	if task.SudoUser != "" {
-		props["sudo_user"] = task.SudoUser
-	}
-	if len(task.Hosts) != 0 {
-		props["hosts"] = strings.Join(task.Hosts, ",")
-	}
-	if task.Action != "" {
-		props["action"] = task.Action
-	}
-	for name, arg := range task.Args {
-		props["__arg_"+name] = arg
-	}
-
-	if len(task.Notify) != 0 {
-		props["notify"] = strings.Join(task.Notify, ",")
-	}
+	token, _ := yaml.Marshal(task)
+	props["token"] = string(token)
+	headers["hosts"] = strings.Join(task.Hosts, ",")
 
 	return
 }
 
 func decodeScriptTask(props, headers map[string]any) *process.Task {
-	task := &process.Task{
-		Vars: map[string]any{},
-		Args: map[string]any{},
-	}
-	for key, value := range props {
-		if key == "sudo" {
-			task.Sudo = true
-		}
-		if key == "sudo_user" {
-			task.SudoUser = value.(string)
-		}
-		if key == "hosts" {
-			task.Hosts = strings.Split(value.(string), ",")
-		}
-
-		if key == "action" {
-			task.Action = value.(string)
-		}
-		if strings.HasPrefix(key, "__arg_") {
-			task.Args[strings.TrimPrefix(key, "__arg_")] = value
-		}
-
-		if key == "notify" {
-			task.Notify = strings.Split(value.(string), ",")
-		}
-	}
-
-	for key, value := range headers {
-		if key == "id" {
-			task.Id = value.(string)
-		}
-		if key == "name" {
-			task.Name = value.(string)
-		}
-		if key == "remote_user" {
-			task.RemoteUser = value.(string)
-		}
-		if strings.HasPrefix(key, "__var_") {
-			task.Vars[strings.TrimPrefix(key, "__var_")] = value.(string)
-		}
+	var task *process.Task
+	if v, ok := props["token"]; ok {
+		vv, _ := v.(string)
+		_ = yaml.Unmarshal([]byte(vv), &task)
 	}
 
 	return task
 }
 
-func encodeServiceTask(s *process.Service) (props map[string]any, headers map[string]any) {
+func encodeServiceTask(service *process.Service) (props map[string]any, headers map[string]any) {
 	props = map[string]any{}
 	headers = map[string]any{}
 
-	if s.Id != "" {
-		headers["id"] = s.Id
-	}
-	if s.Name != "" {
-		headers["name"] = s.Name
-	}
-	for key, value := range s.Vars {
-		headers["__var_"+key] = value
-	}
-	if len(s.Hosts) != 0 {
-		props["hosts"] = strings.Join(s.Hosts, ",")
-	}
-	if s.Action != "" {
-		props["action"] = s.Action
-	}
-	for name, arg := range s.Args {
-		props["__arg_"+name] = arg
-	}
-
-	if len(s.Notify) != 0 {
-		props["notify"] = strings.Join(s.Notify, ",")
-	}
+	token, _ := yaml.Marshal(service)
+	props["token"] = string(token)
+	headers["hosts"] = strings.Join(service.Hosts, ",")
 
 	return
 }
 
 func decodeServiceTask(props, headers map[string]any) *process.Service {
-	s := &process.Service{
-		Vars: map[string]any{},
-		Args: map[string]any{},
-	}
-	for key, value := range props {
-		if key == "hosts" {
-			s.Hosts = strings.Split(value.(string), ",")
-		}
-
-		if key == "action" {
-			s.Action = value.(string)
-		}
-		if strings.HasPrefix(key, "__arg_") {
-			s.Args[strings.TrimPrefix(key, "__arg_")] = value
-		}
-
-		if key == "notify" {
-			s.Notify = strings.Split(value.(string), ",")
-		}
-	}
-
-	for key, value := range headers {
-		if key == "id" {
-			s.Id = value.(string)
-		}
-		if key == "name" {
-			s.Name = value.(string)
-		}
-		if strings.HasPrefix(key, "__var_") {
-			s.Vars[strings.TrimPrefix(key, "__var_")] = value
-		}
+	var s *process.Service
+	if v, ok := props["token"]; ok {
+		vv, _ := v.(string)
+		_ = yaml.Unmarshal([]byte(vv), &s)
 	}
 
 	return s
