@@ -19,6 +19,9 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/muyo/sno"
+	"gopkg.in/yaml.v3"
 )
 
 type YamlKV map[string]interface{}
@@ -197,4 +200,50 @@ func parseTaskArgs(s string) map[string]any {
 		args[be] = af
 	}
 	return args
+}
+
+func EncodeScriptTask(task *Task) (props map[string]any, headers map[string]any) {
+	props = map[string]any{}
+	headers = map[string]any{}
+
+	token, _ := yaml.Marshal(task)
+	props["token"] = string(token)
+	headers["hosts"] = strings.Join(task.Hosts, ",")
+
+	return
+}
+
+func DecodeScriptTask(props, headers map[string]any) *Task {
+	var task *Task
+	if v, ok := props["token"]; ok {
+		vv, _ := v.(string)
+		_ = yaml.Unmarshal([]byte(vv), &task)
+	}
+
+	return task
+}
+
+func EncodeServiceTask(service *Service) (props map[string]any, headers map[string]any) {
+	props = map[string]any{}
+	headers = map[string]any{}
+
+	token, _ := yaml.Marshal(service)
+	props["token"] = string(token)
+	headers["hosts"] = strings.Join(service.Hosts, ",")
+
+	return
+}
+
+func DecodeServiceTask(props, headers map[string]any) *Service {
+	var s *Service
+	if v, ok := props["token"]; ok {
+		vv, _ := v.(string)
+		_ = yaml.Unmarshal([]byte(vv), &s)
+	}
+
+	return s
+}
+
+func newSnoId() string {
+	return string(sno.New(0).Bytes())
 }

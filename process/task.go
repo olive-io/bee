@@ -54,18 +54,18 @@ type ChildProcess struct {
 	Handlers []*Handler `json:"handlers,omitempty" yaml:"handlers,omitempty"`
 }
 
-func (c *ChildProcess) fromKV(kv YamlKV) (err error) {
-	c.Kind = ChildProcessKey
+func (p *ChildProcess) fromKV(kv YamlKV) (err error) {
+	p.Kind = ChildProcessKey
 	for key, value := range kv {
 		if key == "name" {
-			_, err = kv.Apply("name", &c.Name)
+			_, err = kv.Apply("name", &p.Name)
 			if err != nil {
 				return err
 			}
 			continue
 		}
 		if key == "id" {
-			_, err = kv.Apply("id", &c.Id)
+			_, err = kv.Apply("id", &p.Id)
 			if err != nil {
 				return err
 			}
@@ -75,35 +75,35 @@ func (c *ChildProcess) fromKV(kv YamlKV) (err error) {
 			continue
 		}
 		if key == "hosts" {
-			_, err = kv.ApplyArray("hosts", &c.Hosts)
+			_, err = kv.ApplyArray("hosts", &p.Hosts)
 			if err != nil {
 				return
 			}
 			continue
 		}
 		if key == "vars" {
-			_, err = kv.ApplyMap("vars", &c.Vars)
+			_, err = kv.ApplyMap("vars", &p.Vars)
 			if err != nil {
 				return
 			}
 			continue
 		}
 		if key == "remote_user" {
-			_, err = kv.Apply("remote_user", &c.RemoteUser)
+			_, err = kv.Apply("remote_user", &p.RemoteUser)
 			if err != nil {
 				return
 			}
 			continue
 		}
 		if key == "sudo" {
-			_, err = kv.Apply("sudo", &c.Sudo)
+			_, err = kv.Apply("sudo", &p.Sudo)
 			if err != nil {
 				return
 			}
 			continue
 		}
 		if key == "sudo_user" {
-			_, err = kv.Apply("sudo_user", &c.SudoUser)
+			_, err = kv.Apply("sudo_user", &p.SudoUser)
 			if err != nil {
 				return
 			}
@@ -115,7 +115,7 @@ func (c *ChildProcess) fromKV(kv YamlKV) (err error) {
 			if !ok {
 				continue
 			}
-			c.Tasks = make([]ITask, len(vv))
+			p.Tasks = make([]ITask, len(vv))
 			for i, item := range vv {
 
 				var kind string
@@ -127,13 +127,13 @@ func (c *ChildProcess) fromKV(kv YamlKV) (err error) {
 						if err = cp.fromKV(ykv); err != nil {
 							return
 						}
-						c.Tasks[i] = cp
+						p.Tasks[i] = cp
 					case ServiceKey:
 						sv := new(Service)
 						if err = sv.fromKV(ykv); err != nil {
 							return
 						}
-						c.Tasks[i] = sv
+						p.Tasks[i] = sv
 					}
 
 				} else {
@@ -141,7 +141,7 @@ func (c *ChildProcess) fromKV(kv YamlKV) (err error) {
 					if err = task.fromKV(ykv); err != nil {
 						return
 					}
-					c.Tasks[i] = task
+					p.Tasks[i] = task
 				}
 			}
 		}
@@ -151,13 +151,13 @@ func (c *ChildProcess) fromKV(kv YamlKV) (err error) {
 			if !ok {
 				continue
 			}
-			c.Handlers = make([]*Handler, len(vv))
+			p.Handlers = make([]*Handler, len(vv))
 			for i, item := range vv {
 				handler := new(Handler)
 				if err = handler.fromKV(item.(YamlKV)); err != nil {
 					return
 				}
-				c.Handlers[i] = handler
+				p.Handlers[i] = handler
 			}
 		}
 	}

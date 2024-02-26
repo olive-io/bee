@@ -14,6 +14,14 @@
 
 package process
 
+import (
+	"strings"
+
+	"github.com/olive-io/bee/process/builder"
+	"github.com/olive-io/bpmn/schema"
+	"github.com/samber/lo"
+)
+
 type Process struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
@@ -145,4 +153,240 @@ func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	}
 
 	return nil
+}
+
+func (p *Process) Build() (*schema.Definitions, map[string]string, map[string]string, error) {
+	pb := builder.NewProcessDefinitionsBuilder(p.Name)
+	if p.Id == "" {
+		p.Id = newSnoId()
+	}
+	pb.Id(p.Id)
+
+	dataObjects := map[string]string{}
+	properties := map[string]string{}
+
+	hosts := p.Hosts
+	if p.Sudo {
+		properties["sudo"] = ""
+	}
+	if p.SudoUser != "" {
+		properties["sudo_user"] = p.SudoUser
+	}
+
+	pb.Start()
+
+	mappingPrefix := "__step_mapping__"
+	for idx := range p.Tasks {
+		st := p.Tasks[idx]
+		switch act := st.(type) {
+		case *ChildProcess:
+			out, ds, props, err := buildChildProcess(act)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			for key, value := range ds {
+				dataObjects[key] = value
+			}
+			for key, value := range props {
+				properties[key] = value
+			}
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(out)
+		case *Task:
+			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
+			sb.SetId(act.Id)
+			props, headers := EncodeScriptTask(act)
+			for key, value := range props {
+				sb.SetProperty(key, value)
+			}
+			for key, value := range headers {
+				sb.SetHeader(key, value)
+			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(sb.Out())
+		case *Service:
+			sb := builder.NewServiceTaskBuilder(act.Name)
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
+			sb.SetId(act.Id)
+			props, headers := EncodeServiceTask(act)
+			for key, value := range props {
+				sb.SetProperty(key, value)
+			}
+			for key, value := range headers {
+				sb.SetHeader(key, value)
+			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(sb.Out())
+		}
+	}
+	pb.End()
+
+	for key, property := range pb.PopProperty() {
+		properties[key] = property
+	}
+	properties["hosts"] = strings.Join(lo.Uniq[string](hosts), ",")
+
+	definitions, err := pb.ToDefinitions()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return definitions, dataObjects, properties, nil
+}
+
+func (p *Process) SubBuild() (*schema.Definitions, map[string]string, map[string]string, error) {
+	pb := builder.NewSubProcessDefinitionsBuilder(p.Name)
+	if p.Id == "" {
+		p.Id = newSnoId()
+	}
+	pb.Id(p.Id)
+
+	dataObjects := map[string]string{}
+	properties := map[string]string{}
+
+	hosts := p.Hosts
+	if p.Sudo {
+		properties["sudo"] = ""
+	}
+	if p.SudoUser != "" {
+		properties["sudo_user"] = p.SudoUser
+	}
+
+	pb.Start()
+
+	mappingPrefix := "__step_mapping__"
+	for idx := range p.Tasks {
+		st := p.Tasks[idx]
+		switch act := st.(type) {
+		case *ChildProcess:
+			out, ds, props, err := buildChildProcess(act)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			for key, value := range ds {
+				dataObjects[key] = value
+			}
+			for key, value := range props {
+				properties[key] = value
+			}
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(out)
+		case *Task:
+			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
+			sb.SetId(act.Id)
+			props, headers := EncodeScriptTask(act)
+			for key, value := range props {
+				sb.SetProperty(key, value)
+			}
+			for key, value := range headers {
+				sb.SetHeader(key, value)
+			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(sb.Out())
+		case *Service:
+			sb := builder.NewServiceTaskBuilder(act.Name)
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
+			sb.SetId(act.Id)
+			props, headers := EncodeServiceTask(act)
+			for key, value := range props {
+				sb.SetProperty(key, value)
+			}
+			for key, value := range headers {
+				sb.SetHeader(key, value)
+			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(sb.Out())
+		}
+	}
+	pb.End()
+
+	for key, property := range pb.PopProperty() {
+		properties[key] = property
+	}
+	properties["hosts"] = strings.Join(lo.Uniq[string](hosts), ",")
+
+	definitions := pb.ToDefinitions()
+
+	return definitions, dataObjects, properties, nil
+}
+
+func buildChildProcess(pr *ChildProcess) (*builder.SubProcessBuilder, map[string]string, map[string]string, error) {
+	pb := builder.NewSubProcessDefinitionsBuilder(pr.Name)
+	if pr.Id == "" {
+		pr.Id = newSnoId()
+	}
+	pb.Id(pr.Id)
+
+	dataObjects := map[string]string{}
+	properties := map[string]string{}
+	hosts := pr.Hosts
+
+	pb.Start()
+
+	mappingPrefix := "__step_mapping__"
+	for idx := range pr.Tasks {
+		st := pr.Tasks[idx]
+		if act, ok := st.(*ChildProcess); ok {
+			out, _, props, err := buildChildProcess(act)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			for key, value := range props {
+				properties[key] = value
+			}
+			pb.AppendElem(out)
+		}
+		if act, ok := st.(*Task); ok {
+			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
+			sb.SetId(act.Id)
+			props, headers := EncodeScriptTask(act)
+			for key, value := range props {
+				sb.SetProperty(key, value)
+			}
+			for key, value := range headers {
+				sb.SetHeader(key, value)
+			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(sb.Out())
+		}
+		if act, ok := st.(*Service); ok {
+			sb := builder.NewServiceTaskBuilder(act.Name)
+			if act.Id == "" {
+				act.Id = newSnoId()
+			}
+			sb.SetId(act.Id)
+			props, headers := EncodeServiceTask(act)
+			for key, value := range props {
+				sb.SetProperty(key, value)
+			}
+			for key, value := range headers {
+				sb.SetHeader(key, value)
+			}
+			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
+			hosts = append(hosts, act.Hosts...)
+			pb.AppendElem(sb.Out())
+		}
+	}
+	pr.Hosts = lo.Uniq[string](hosts)
+
+	pb.End()
+	return pb.Out(), dataObjects, properties, nil
 }

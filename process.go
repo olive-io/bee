@@ -21,11 +21,9 @@ import (
 
 	"github.com/cockroachdb/errors"
 	json "github.com/json-iterator/go"
-	"github.com/muyo/sno"
 	"github.com/olive-io/bee/plugins/callback"
 	"github.com/olive-io/bee/plugins/filter"
 	"github.com/olive-io/bee/process"
-	"github.com/olive-io/bee/process/builder"
 	"github.com/olive-io/bee/stats"
 	"github.com/olive-io/bpmn/flow"
 	"github.com/olive-io/bpmn/flow_node/activity"
@@ -35,13 +33,11 @@ import (
 	"github.com/olive-io/bpmn/process/instance"
 	"github.com/olive-io/bpmn/schema"
 	"github.com/olive-io/bpmn/tracing"
-	"github.com/samber/lo"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 func (rt *Runtime) Play(ctx context.Context, pr *process.Process, opts ...RunOption) error {
-	definitions, dataObjects, properties, err := rt.BuildBpmnProcess(pr)
+	definitions, dataObjects, properties, err := pr.Build()
 	if err != nil {
 		return err
 	}
@@ -141,7 +137,7 @@ LOOP:
 			switch act.(type) {
 			case *service.ServiceTask:
 
-				sv := decodeServiceTask(tProps, tHeaders)
+				sv := process.DecodeServiceTask(tProps, tHeaders)
 				runTasks = append(runTasks, sv)
 				hosts := sv.Hosts
 				if len(hosts) == 0 {
@@ -184,7 +180,7 @@ LOOP:
 
 			case *script.ScriptTask:
 
-				task := decodeScriptTask(tProps, tHeaders)
+				task := process.DecodeScriptTask(tProps, tHeaders)
 				runTasks = append(runTasks, task)
 				hosts := task.Hosts
 				if len(hosts) == 0 {
@@ -354,199 +350,4 @@ func (rt *Runtime) handle(ctx context.Context, hosts []string, handler *process.
 	}
 
 	return nil
-}
-
-func (rt *Runtime) BuildBpmnProcess(pr *process.Process) (*schema.Definitions, map[string]string, map[string]string, error) {
-	pb := builder.NewProcessDefinitionsBuilder(pr.Name)
-	if pr.Id == "" {
-		pr.Id = newSnoId()
-	}
-	pb.Id(pr.Id)
-
-	dataObjects := map[string]string{}
-	properties := map[string]string{}
-
-	hosts := pr.Hosts
-	if pr.Sudo {
-		properties["sudo"] = ""
-	}
-	if pr.SudoUser != "" {
-		properties["sudo_user"] = pr.SudoUser
-	}
-
-	pb.Start()
-
-	mappingPrefix := "__step_mapping__"
-	for idx := range pr.Tasks {
-		st := pr.Tasks[idx]
-		switch act := st.(type) {
-		case *process.ChildProcess:
-			out, props, err := buildChildProcess(act)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			for key, value := range props {
-				properties[key] = value
-			}
-			hosts = append(hosts, act.Hosts...)
-			pb.AppendElem(out)
-		case *process.Task:
-			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
-			if act.Id == "" {
-				act.Id = newSnoId()
-			}
-			sb.SetId(act.Id)
-			props, headers := encodeScriptTask(act)
-			for key, value := range props {
-				sb.SetProperty(key, value)
-			}
-			for key, value := range headers {
-				sb.SetHeader(key, value)
-			}
-			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
-			hosts = append(hosts, act.Hosts...)
-			pb.AppendElem(sb.Out())
-		case *process.Service:
-			sb := builder.NewServiceTaskBuilder(act.Name)
-			if act.Id == "" {
-				act.Id = newSnoId()
-			}
-			sb.SetId(act.Id)
-			props, headers := encodeServiceTask(act)
-			for key, value := range props {
-				sb.SetProperty(key, value)
-			}
-			for key, value := range headers {
-				sb.SetHeader(key, value)
-			}
-			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
-			hosts = append(hosts, act.Hosts...)
-			pb.AppendElem(sb.Out())
-		}
-	}
-	pb.End()
-
-	for key, property := range pb.PopProperty() {
-		properties[key] = property
-	}
-	properties["hosts"] = strings.Join(lo.Uniq[string](hosts), ",")
-
-	definitions, err := pb.ToDefinitions()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return definitions, dataObjects, properties, nil
-}
-
-func buildChildProcess(pr *process.ChildProcess) (*builder.SubProcessBuilder, map[string]string, error) {
-	pb := builder.NewSubProcessDefinitionsBuilder(pr.Name)
-	if pr.Id == "" {
-		pr.Id = newSnoId()
-	}
-	pb.Id(pr.Id)
-
-	properties := map[string]string{}
-	hosts := pr.Hosts
-
-	pb.Start()
-
-	mappingPrefix := "__step_mapping__"
-	for idx := range pr.Tasks {
-		st := pr.Tasks[idx]
-		if act, ok := st.(*process.ChildProcess); ok {
-			out, props, err := buildChildProcess(act)
-			if err != nil {
-				return nil, nil, err
-			}
-			for key, value := range props {
-				properties[key] = value
-			}
-			pb.AppendElem(out)
-		}
-		if act, ok := st.(*process.Task); ok {
-			sb := builder.NewScriptTaskBuilder(act.Name, "tengo")
-			if act.Id == "" {
-				act.Id = newSnoId()
-			}
-			sb.SetId(act.Id)
-			props, headers := encodeScriptTask(act)
-			for key, value := range props {
-				sb.SetProperty(key, value)
-			}
-			for key, value := range headers {
-				sb.SetHeader(key, value)
-			}
-			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
-			hosts = append(hosts, act.Hosts...)
-			pb.AppendElem(sb.Out())
-		}
-		if act, ok := st.(*process.Service); ok {
-			sb := builder.NewServiceTaskBuilder(act.Name)
-			if act.Id == "" {
-				act.Id = newSnoId()
-			}
-			sb.SetId(act.Id)
-			props, headers := encodeServiceTask(act)
-			for key, value := range props {
-				sb.SetProperty(key, value)
-			}
-			for key, value := range headers {
-				sb.SetHeader(key, value)
-			}
-			pb.SetProperty(mappingPrefix+act.Id, strings.Join(act.Hosts, ","))
-			hosts = append(hosts, act.Hosts...)
-			pb.AppendElem(sb.Out())
-		}
-	}
-	pr.Hosts = lo.Uniq[string](hosts)
-
-	pb.End()
-	return pb.Out(), properties, nil
-}
-
-func encodeScriptTask(task *process.Task) (props map[string]any, headers map[string]any) {
-	props = map[string]any{}
-	headers = map[string]any{}
-
-	token, _ := yaml.Marshal(task)
-	props["token"] = string(token)
-	headers["hosts"] = strings.Join(task.Hosts, ",")
-
-	return
-}
-
-func decodeScriptTask(props, headers map[string]any) *process.Task {
-	var task *process.Task
-	if v, ok := props["token"]; ok {
-		vv, _ := v.(string)
-		_ = yaml.Unmarshal([]byte(vv), &task)
-	}
-
-	return task
-}
-
-func encodeServiceTask(service *process.Service) (props map[string]any, headers map[string]any) {
-	props = map[string]any{}
-	headers = map[string]any{}
-
-	token, _ := yaml.Marshal(service)
-	props["token"] = string(token)
-	headers["hosts"] = strings.Join(service.Hosts, ",")
-
-	return
-}
-
-func decodeServiceTask(props, headers map[string]any) *process.Service {
-	var s *process.Service
-	if v, ok := props["token"]; ok {
-		vv, _ := v.(string)
-		_ = yaml.Unmarshal([]byte(vv), &s)
-	}
-
-	return s
-}
-
-func newSnoId() string {
-	return string(sno.New(0).Bytes())
 }
