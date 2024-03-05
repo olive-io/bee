@@ -33,12 +33,11 @@ var (
 type Callable func(ctx context.Context, host, action string, in []byte, opts ...RunOption) ([]byte, error)
 
 type Options struct {
-	dir        string
-	parallel   int
-	check      bool
-	modulePath []string
-	logger     *zap.Logger
-	caller     Callable
+	dir      string
+	parallel int
+	check    bool
+	logger   *zap.Logger
+	caller   Callable
 }
 
 func newOptions() *Options {
@@ -68,12 +67,6 @@ func SetParallel(parallel int) Option {
 func SetCheck(check bool) Option {
 	return func(opt *Options) {
 		opt.check = check
-	}
-}
-
-func SetModulePath(modulePath []string) Option {
-	return func(opt *Options) {
-		opt.modulePath = modulePath
 	}
 }
 

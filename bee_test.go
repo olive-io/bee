@@ -65,7 +65,7 @@ func startGRPCServer(t *testing.T) {
 	time.Sleep(time.Second * 1)
 }
 
-func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, func()) {
+func newRuntime(t *testing.T) (*bee.Runtime, *inv.Manager, func()) {
 	startGRPCServer(t)
 
 	dataloader := parser.NewDataLoader()
@@ -80,7 +80,6 @@ func newRuntime(t *testing.T, modules ...string) (*bee.Runtime, *inv.Manager, fu
 
 	options := []bee.Option{
 		bee.SetDir("_output/bee"),
-		bee.SetModulePath(modules),
 		bee.SetCaller(func(ctx context.Context, host, action string, in []byte, opts ...bee.RunOption) ([]byte, error) {
 			ropt := bee.RunOptions{}
 			for _, opt := range opts {
@@ -115,7 +114,7 @@ func Test_Runtime(t *testing.T) {
 	options := make([]bee.RunOption, 0)
 	//options = append(options, bee.SetRunSync(true))
 	inventory.AddSources(sources...)
-	data, err := rt.Execute(ctx, "localhost", "ping", options...)
+	data, err := rt.Execute(ctx, "host1", "ping", options...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,17 +157,22 @@ func Test_Copy(t *testing.T) {
 
 const moduleCfg = `name: "hello_world"
 long: "this is a hello-world module"
-script: "hello_world.tengo"
 authors:
   - lack
-params:
-  - name: name
-    type: string
-    default: "world"
 
-returns:
-  - name: "message"
-    type: "string"
+commands:
+  - name: sub
+    script: "hello_world.tengo"
+    params:
+      - name: name
+        type: string
+        default: "world"
+
+    returns:
+      - name: "message"
+        type: "string"
+root: hello_world
+script: hello_world.tengo
 `
 
 const hello_worldTengo = `
@@ -204,18 +208,18 @@ func initDir(t *testing.T, root string) (string, func()) {
 }
 
 func Test_Runtime_extra_modules(t *testing.T) {
-	extra := "_output/mymodule/hello_world"
+	extra := "_output/bee/modules/hello_world"
 	_, clean := initDir(t, extra)
 	defer clean()
 
 	sources := []string{"host1"}
-	rt, inventory, cancel := newRuntime(t, extra)
+	rt, inventory, cancel := newRuntime(t)
 	defer cancel()
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
 	inventory.AddSources(sources...)
-	data, err := rt.Execute(ctx, "host1", "hello_world name=lack", options...)
+	data, err := rt.Execute(ctx, "host1", "hello_world.sub name=lack", options...)
 	if err != nil {
 		t.Fatal(err)
 	}

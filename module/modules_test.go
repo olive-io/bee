@@ -50,7 +50,7 @@ returns:
     example: ""
 
 commands:
-  - name: "sub-command"
+  - name: "sub"
     long: "a long text for description"
     script: "sub.tengo"
     authors:
@@ -58,6 +58,12 @@ commands:
     examples: |
 
     params:
+      - name: ip
+        type: string
+        short: I
+        default: 127.0.0.1
+        desc: "target ip address"
+        example: "127.0.0.1"
     returns:`
 
 func initDir(t *testing.T, dir string) (string, func()) {
@@ -96,11 +102,11 @@ func TestModule_Execute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := m.Execute("ip=10.0.0.100")
+	c, err := m.Execute("my_ping.sub", "ip=10.0.0.100")
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, c.Name, "my_ping")
+	assert.Equal(t, c.Name, "sub")
 	ip, _ := c.Flags().GetString("ip")
 	assert.Equal(t, ip, "10.0.0.100")
 

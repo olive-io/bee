@@ -46,7 +46,6 @@ func ExampleRuntime() {
 	options := []bee.Option{
 		bee.SetDir("_output/bee"),
 		bee.SetLogger(lg),
-		bee.SetModulePath([]string{"_output/mymodule"}),
 	}
 	rt, err := bee.NewRuntime(inventory, variables, dataloader, options...)
 	if err != nil {

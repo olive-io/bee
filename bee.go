@@ -106,22 +106,7 @@ func NewRuntime(
 		modules:   modules,
 	}
 
-	if err = rt.loadModules(); err != nil {
-		return nil, err
-	}
-
 	return rt, nil
-}
-
-func (rt *Runtime) loadModules() error {
-	multiPath := rt.opts.modulePath
-	for _, dir := range multiPath {
-		err := rt.modules.LoadDir(dir)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (rt *Runtime) Logger() *zap.Logger {

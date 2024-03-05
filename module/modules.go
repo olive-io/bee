@@ -88,10 +88,12 @@ func readCommand(dir string) (*Command, error) {
 		return nil, err
 	}
 
-	for _, sub := range c.Commands {
+	for i := range c.Commands {
+		sub := c.Commands[i]
 		if err = validateScript(sub, dir); err != nil {
 			return nil, err
 		}
+
 	}
 	c.Commands = append(c.Commands, subs...)
 	return c, nil
@@ -110,6 +112,7 @@ func validateScript(c *Command, dir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "invalid script")
 	}
+	c.Run = DefaultRunCommand
 	return nil
 }
 
