@@ -175,7 +175,7 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 	}
 	bm, ok := rt.modules.Find(mname)
 	if !ok {
-		return nil, errors.New("unknown module")
+		return nil, fmt.Errorf("unknown module <%s>", mname)
 	}
 
 	cmd, err := bm.Execute(args...)

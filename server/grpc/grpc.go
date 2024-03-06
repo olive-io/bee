@@ -17,11 +17,9 @@ package grpc
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/cockroachdb/errors"
@@ -216,14 +214,7 @@ func (s *Server) Execute(stream pb.RemoteRPC_ExecuteServer) error {
 		return rpctype.ToGRPCErr(err)
 	}
 
-	name := req.Name
-	args := req.Args
-	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Env = make([]string, 0)
-	for key, value := range req.Envs {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
-	}
-
+	cmd := startExec(ctx, req)
 	rsp := &pb.ExecuteResponse{}
 	if err = stream.Send(rsp); err != nil {
 		return rpctype.ToGRPCErr(err)
