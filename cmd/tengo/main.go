@@ -42,7 +42,7 @@ var (
 	compileOutput string
 	showHelp      bool
 	showVersion   bool
-	resolvePath   bool // TODO Remove this flag at version 3
+	resolvePath   string
 	version       = "dev"
 )
 
@@ -50,7 +50,7 @@ func init() {
 	flag.BoolVar(&showHelp, "help", false, "Show help")
 	flag.StringVar(&compileOutput, "o", "", "Compile output file")
 	flag.BoolVar(&showVersion, "version", false, "Show version")
-	flag.BoolVar(&resolvePath, "resolve", false, "Resolve relative import paths")
+	flag.StringVar(&resolvePath, "import", "", "import extra paths")
 	flag.Parse()
 }
 
@@ -255,8 +255,8 @@ func compileSrc(
 
 	c := tengo.NewCompiler(srcFile, nil, nil, modules, nil)
 	c.EnableFileImport(true)
-	if resolvePath {
-		c.SetImportDir(filepath.Dir(inputFile))
+	if resolvePath != "" {
+		c.SetImportDir(resolvePath)
 	}
 
 	if err := c.Compile(file); err != nil {
@@ -277,6 +277,7 @@ func doHelp() {
 	fmt.Println()
 	fmt.Println("	-o        compile output file")
 	fmt.Println("	-version  show version")
+	fmt.Println("	-import   import extra paths")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println()

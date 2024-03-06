@@ -175,9 +175,11 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 		return nil, err
 	}
 
+	resolve := path.Join(home, "modules")
 	script := path.Join(home, "modules", command.Root, command.Script)
 	if goos == "windows" {
 		script = strings.ReplaceAll(script, "/", "\\")
+		resolve = strings.ReplaceAll(resolve, "/", "\\")
 	}
 
 	switch ext {
@@ -186,9 +188,12 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 		if goos == "windows" {
 			repl = strings.ReplaceAll(repl, "/", "\\")
 		}
+		options = append(options, client.ExecWithArgs("-import="+resolve))
 	case Bash:
+		repl = "/bin/bash"
 		options = append(options, client.ExecWithArgs("-c"))
 	case Powershell:
+		repl = "powershell.exe"
 	}
 
 	options = append(options, client.ExecWithArgs(script))

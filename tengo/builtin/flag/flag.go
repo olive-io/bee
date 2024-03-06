@@ -87,7 +87,14 @@ func (f *ImportFlag) Parse() tengo.CallableFunc {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
 		}
-		err := f.fs.Parse(os.Args)
+		var osArgs []string
+		for _, arg := range os.Args {
+			if strings.HasPrefix(strings.TrimSpace(arg), "-import") {
+				continue
+			}
+			osArgs = append(osArgs, arg)
+		}
+		err := f.fs.Parse(osArgs)
 		if err != nil {
 			return nil, err
 		}
