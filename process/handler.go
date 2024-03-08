@@ -21,6 +21,7 @@ import (
 type Handler struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Desc string `json:"desc,omitempty" yaml:"desc,omitempty"`
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
 	Action string         `json:"action,omitempty" yaml:"action,omitempty"`
@@ -38,6 +39,13 @@ func (h *Handler) fromKV(kv YamlKV) (err error) {
 		}
 		if key == "id" {
 			_, err = kv.Apply("id", &h.Id)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if key == "desc" {
+			_, err = kv.Apply("desc", &h.Desc)
 			if err != nil {
 				return err
 			}

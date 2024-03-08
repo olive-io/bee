@@ -25,6 +25,7 @@ import (
 type Process struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Desc string `json:"desc,omitempty" yaml:"desc,omitempty"`
 
 	Hosts []string `json:"hosts,omitempty" yaml:"hosts,omitempty"`
 
@@ -57,6 +58,14 @@ func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 
 		if key == "id" {
 			_, err = kv.Apply("id", &p.Id)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		if key == "desc" {
+			_, err = kv.Apply("desc", &p.Desc)
 			if err != nil {
 				return err
 			}
@@ -153,6 +162,10 @@ func (p *Process) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	}
 
 	return nil
+}
+
+func (p *Process) ToBuilder() *Builder {
+	return &Builder{p: p}
 }
 
 func (p *Process) Build() (*schema.Definitions, map[string]string, map[string]string, error) {

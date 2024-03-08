@@ -209,6 +209,9 @@ func EncodeScriptTask(task *Task) (props map[string]any, headers map[string]any)
 	token, _ := json.Marshal(task)
 	props["token"] = string(token)
 	headers["hosts"] = strings.Join(task.Hosts, ",")
+	headers["id"] = task.Id
+	headers["name"] = task.Name
+	headers["desc"] = task.Desc
 
 	return
 }
@@ -230,6 +233,9 @@ func EncodeServiceTask(service *Service) (props map[string]any, headers map[stri
 	token, _ := json.Marshal(service)
 	props["token"] = string(token)
 	headers["hosts"] = strings.Join(service.Hosts, ",")
+	headers["id"] = service.Id
+	headers["name"] = service.Name
+	headers["desc"] = service.Desc
 
 	return
 }

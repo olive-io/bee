@@ -38,6 +38,8 @@ type ICatchTask interface {
 type ChildProcess struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Desc string `json:"desc,omitempty" yaml:"desc,omitempty"`
+
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
 	Hosts []string `json:"hosts,omitempty" yaml:"hosts,omitempty"`
@@ -66,6 +68,13 @@ func (p *ChildProcess) fromKV(kv YamlKV) (err error) {
 		}
 		if key == "id" {
 			_, err = kv.Apply("id", &p.Id)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if key == "desc" {
+			_, err = kv.Apply("desc", &p.Desc)
 			if err != nil {
 				return err
 			}
@@ -167,6 +176,7 @@ func (p *ChildProcess) fromKV(kv YamlKV) (err error) {
 type Task struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Desc string `json:"desc,omitempty" yaml:"desc,omitempty"`
 
 	Vars map[string]any `json:"vars,omitempty" yaml:"vars,omitempty"`
 
@@ -197,6 +207,13 @@ func (t *Task) fromKV(kv YamlKV) (err error) {
 		}
 		if key == "id" {
 			_, err = kv.Apply("id", &t.Id)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if key == "desc" {
+			_, err = kv.Apply("desc", &t.Desc)
 			if err != nil {
 				return err
 			}
@@ -312,6 +329,7 @@ func (t *Task) GetFinish() *Handler {
 type Service struct {
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	Id   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Desc string `json:"desc,omitempty" yaml:"desc,omitempty"`
 
 	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
@@ -340,6 +358,13 @@ func (s *Service) fromKV(kv YamlKV) (err error) {
 		}
 		if key == "id" {
 			_, err = kv.Apply("id", &s.Name)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if key == "desc" {
+			_, err = kv.Apply("desc", &s.Desc)
 			if err != nil {
 				return err
 			}
