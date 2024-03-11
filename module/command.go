@@ -20,12 +20,11 @@ import (
 	"path"
 	"strings"
 
+	"github.com/olive-io/bee/executor/client"
+	"github.com/olive-io/bee/vars"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
-
-	"github.com/olive-io/bee/executor/client"
-	"github.com/olive-io/bee/vars"
 )
 
 const (
@@ -149,15 +148,15 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	command := ctx.Cmd
 	lg := ctx.Logger
 	conn := ctx.Conn
-	execOptions := client.NewExecOptions()
+	eOpts := client.NewExecOptions()
 	for _, opt := range opts {
-		opt(execOptions)
+		opt(eOpts)
 	}
 
 	command.Flags().VisitAll(func(flag *pflag.Flag) {
 		value := ctx.Variables.GetDefault(PrefixFlag+flag.Name, flag.Value.String())
 		arg := "--" + flag.Name + "=" + value
-		execOptions.Args = append(execOptions.Args, arg)
+		eOpts.Args = append(eOpts.Args, arg)
 	})
 
 	options := make([]client.ExecOption, 0)
@@ -176,10 +175,12 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	}
 
 	resolve := path.Join(home, "modules")
+	root := path.Join(resolve, eOpts.Root)
 	script := path.Join(home, "modules", command.Root, command.Script)
 	if goos == "windows" {
-		script = strings.ReplaceAll(script, "/", "\\")
 		resolve = strings.ReplaceAll(resolve, "/", "\\")
+		root = strings.ReplaceAll(root, "/", "\\")
+		script = strings.ReplaceAll(script, "/", "\\")
 	}
 
 	switch ext {
@@ -197,12 +198,13 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	}
 
 	options = append(options, client.ExecWithArgs(script))
-	options = append(options, client.ExecWithArgs(execOptions.Args...))
-	for key, value := range execOptions.Environments {
+	options = append(options, client.ExecWithArgs(eOpts.Args...))
+	options = append(options, client.ExecWithRootDir(root))
+	for key, value := range eOpts.Environments {
 		options = append(options, client.ExecWithEnv(key, value))
 	}
 
-	shell := fmt.Sprintf("%s %s %s", repl, script, strings.Join(execOptions.Args, " "))
+	shell := fmt.Sprintf("%s %s %s", repl, script, strings.Join(eOpts.Args, " "))
 	lg.Debug("remote execute", zap.String("command", shell))
 	cmd, err := conn.Execute(ctx, repl, options...)
 	if err != nil {

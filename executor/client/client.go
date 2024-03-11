@@ -159,6 +159,7 @@ type IOTraceFn func(*IOTrace)
 type ExecOptions struct {
 	Context context.Context
 
+	Root         string
 	Args         []string
 	Environments map[string]string
 }
@@ -172,6 +173,12 @@ func NewExecOptions() *ExecOptions {
 }
 
 type ExecOption func(*ExecOptions)
+
+func ExecWithRootDir(root string) ExecOption {
+	return func(options *ExecOptions) {
+		options.Root = root
+	}
+}
 
 func ExecWithArgs(args ...string) ExecOption {
 	return func(options *ExecOptions) {

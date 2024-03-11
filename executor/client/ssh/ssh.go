@@ -253,6 +253,7 @@ func (c *Client) Execute(ctx context.Context, shell string, opts ...client.ExecO
 	cmd := &Cmd{
 		ctx:     ctx,
 		session: session,
+		root:    options.Root,
 		name:    shell,
 		args:    options.Args,
 		envs:    options.Environments,

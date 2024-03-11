@@ -31,6 +31,9 @@ type Schema struct {
 }
 
 func (s *Schema) InitValue() *SchemaValue {
+	if s.Type == "" {
+		s.Type = "string"
+	}
 	sv := &SchemaValue{}
 	switch s.Type {
 	case "string":

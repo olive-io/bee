@@ -36,9 +36,9 @@ import (
 )
 
 const hostText = `
-host1 bee_host=192.168.2.32 bee_user=root bee_ssh_passwd=123456
+host1 bee_host=192.168.2.32 bee_user=root bee_ssh_passwd=xxx
 localhost bee_connect=grpc bee_host=127.0.0.1 bee_port=15250 bee_platform=darwin bee_arch=arm64 bee_home=/tmp/bee
-# host2 bee_host=192.168.2.164 bee_connect=winrm bee_platform=windows bee_user=Administrator bee_winrm_passwd=xxx
+host2 bee_host=192.168.2.164 bee_connect=winrm bee_platform=windows bee_user=Administrator bee_home=C:\\Windows\\Temp\\bee 
 `
 
 func startGRPCServer(t *testing.T) {
@@ -106,15 +106,15 @@ func newRuntime(t *testing.T) (*bee.Runtime, *inv.Manager, func()) {
 }
 
 func Test_Runtime(t *testing.T) {
-	sources := []string{"host1", "localhost"}
+	sources := []string{"host2", "localhost"}
 	rt, inventory, cancel := newRuntime(t)
 	defer cancel()
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
-	//options = append(options, bee.SetRunSync(true))
+	options = append(options, bee.WithRunSync(true))
 	inventory.AddSources(sources...)
-	data, err := rt.Execute(ctx, "localhost", "ping", options...)
+	data, err := rt.Execute(ctx, "host2", "ping", options...)
 	if err != nil {
 		t.Fatal(err)
 	}

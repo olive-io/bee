@@ -59,6 +59,7 @@ type Cmd struct {
 	cc pb.RemoteRPCClient
 	s  pb.RemoteRPC_ExecuteClient
 
+	root string
 	name string
 	args []string
 	envs map[string]string
@@ -155,6 +156,7 @@ func (c *Cmd) Start() error {
 		Name: c.name,
 		Args: c.args,
 		Envs: c.envs,
+		Root: c.root,
 	}
 	if err = c.s.Send(req); err != nil {
 		return rpctype.ParseGRPCErr(err)

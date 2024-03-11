@@ -418,6 +418,7 @@ func (c *Client) Execute(ctx context.Context, shell string, opts ...client.ExecO
 		options:  c.callOptions(),
 		cc:       c.cc,
 		name:     shell,
+		root:     options.Root,
 		args:     options.Args,
 		envs:     options.Environments,
 		ech:      make(chan error, 1),

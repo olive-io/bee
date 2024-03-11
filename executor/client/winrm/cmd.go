@@ -37,6 +37,7 @@ var (
 type Cmd struct {
 	ctx context.Context
 
+	root string
 	name string
 	args []string
 	envs map[string]string
@@ -106,8 +107,14 @@ func (c *Cmd) Start() error {
 	}
 
 	ctx := c.ctx
-	shell := fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
-	cc, err := c.s.ExecuteWithContext(ctx, shell)
+	args := make([]string, 0)
+	if c.root != "" {
+		args = append(args, "Set-Location "+c.root+";")
+	}
+	args = append(args, c.name)
+	args = append(args, c.args...)
+	shell := strings.Join(args, " ")
+	cc, err := c.s.ExecuteWithContext(ctx, fmt.Sprintf(`powershell -c "%s"`, shell))
 	if err != nil {
 		return errors.Wrapf(client.ErrRequest, err.Error())
 	}

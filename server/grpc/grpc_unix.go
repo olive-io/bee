@@ -45,9 +45,13 @@ func startExec(ctx context.Context, in *pb.ExecuteRequest) *exec.Cmd {
 	for k, v := range in.Envs {
 		cmd.Env = append(cmd.Env, k+"="+v)
 	}
-	home, err := os.UserHomeDir()
-	if err == nil {
-		cmd.Dir = home
+	if in.Root != "" {
+		cmd.Dir = in.Root
+	} else {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			cmd.Dir = home
+		}
 	}
 
 	return cmd

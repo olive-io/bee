@@ -29,13 +29,20 @@ type Cmd struct {
 	ctx     context.Context
 	session *ssh.Session
 
+	root string
 	name string
 	args []string
 	envs map[string]string
 }
 
 func (c *Cmd) shell() string {
-	return c.name + " " + strings.Join(c.args, " ")
+	args := make([]string, 0)
+	if c.root != "" {
+		args = append(args, "cd "+c.root+";")
+	}
+	args = append(args, c.name)
+	args = append(args, c.args...)
+	return strings.Join(args, " ")
 }
 
 func (c *Cmd) Session() *ssh.Session {

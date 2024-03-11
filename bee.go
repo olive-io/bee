@@ -211,22 +211,22 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 	}
 
 	rctx := cmd.NewContext(ctx, lg, conn, sm)
-	execOptions := make([]client.ExecOption, 0)
+	eOpts := []client.ExecOption{client.ExecWithRootDir(bm.Root)}
 
 	if cmd.PreRun != nil {
-		if _, err = cmd.PreRun(rctx, execOptions...); err != nil {
+		if _, err = cmd.PreRun(rctx, eOpts...); err != nil {
 			lg.Error("execute prepare command", zap.Error(err))
 		}
 	}
 	if cmd.Run == nil {
 		return nil, errors.New("command can not be executed")
 	}
-	out, err := cmd.Run(rctx, execOptions...)
+	out, err := cmd.Run(rctx, eOpts...)
 	if err != nil {
 		return nil, err
 	}
 	if cmd.PostRun != nil {
-		if _, err = cmd.PostRun(rctx, execOptions...); err != nil {
+		if _, err = cmd.PostRun(rctx, eOpts...); err != nil {
 			lg.Error("execute post command", zap.Error(err))
 		}
 	}
@@ -378,7 +378,7 @@ func (rt *Runtime) Stop() error {
 
 func (rt *Runtime) applyStableMap(host string) *module.StableMap {
 	sm := module.NewVariables()
-	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, ".bee")
+	home := rt.variables.MustGetHostDefaultValue(host, vars.BeeHome, "/tmp/bee")
 	sm.Set(vars.BeeHome, home)
 	goos := rt.variables.MustGetHostDefaultValue(host, vars.BeePlatformVars, "linux")
 	sm.Set(vars.BeePlatformVars, goos)

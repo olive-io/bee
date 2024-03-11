@@ -1,11 +1,11 @@
 module github.com/olive-io/bee
 
-go 1.20
+go 1.18
 
 require (
 	github.com/cockroachdb/errors v1.11.1
 	github.com/cockroachdb/pebble v1.0.0
-	github.com/d5/tengo/v2 v2.16.1
+	github.com/d5/tengo/v2 v2.17.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
@@ -26,7 +26,7 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.21.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
-	google.golang.org/grpc v1.61.0
+	google.golang.org/grpc v1.62.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -77,6 +77,6 @@ require (
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 )

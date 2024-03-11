@@ -39,6 +39,7 @@ type ImportFlag struct {
 
 func NewFlag() *ImportFlag {
 	fs := pflag.NewFlagSet("", pflag.ContinueOnError)
+	fs.ParseErrorsWhitelist.UnknownFlags = true
 	f := &ImportFlag{
 		fs: fs,
 	}
@@ -87,14 +88,7 @@ func (f *ImportFlag) Parse() tengo.CallableFunc {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
 		}
-		var osArgs []string
-		for _, arg := range os.Args {
-			if strings.HasPrefix(strings.TrimSpace(arg), "-import") {
-				continue
-			}
-			osArgs = append(osArgs, arg)
-		}
-		err := f.fs.Parse(osArgs)
+		err := f.fs.Parse(os.Args)
 		if err != nil {
 			return nil, err
 		}

@@ -199,6 +199,7 @@ func (wr *WinRM) Execute(ctx context.Context, shell string, opts ...client.ExecO
 
 	cmd := &Cmd{
 		ctx:           ctx,
+		root:          options.Root,
 		name:          shell,
 		args:          options.Args,
 		envs:          options.Environments,
