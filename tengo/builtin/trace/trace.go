@@ -17,6 +17,7 @@ package trace
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
@@ -66,6 +67,8 @@ func NewTrace() *ImportModule {
 	attrs["int"] = &tengo.UserFunction{Name: "int", Value: tm.IntField()}
 	attrs["float"] = &tengo.UserFunction{Name: "float", Value: tm.FloatField()}
 	attrs["string"] = &tengo.UserFunction{Name: "string", Value: tm.StringField()}
+	attrs["bool"] = &tengo.UserFunction{Name: "bool", Value: tm.BoolField()}
+	attrs["duration"] = &tengo.UserFunction{Name: "duration", Value: tm.DurationField()}
 	attrs["time"] = &tengo.UserFunction{Name: "time", Value: tm.TimeField()}
 	attrs["fields"] = &tengo.UserFunction{Name: "fields", Value: tm.Fields()}
 	attrs["debug"] = &tengo.UserFunction{Name: "debug", Value: tm.Debug()}
@@ -212,6 +215,71 @@ func (m *ImportModule) StringField() tengo.CallableFunc {
 	}
 }
 
+func (m *ImportModule) BoolField() tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		numArgs := len(args)
+		if numArgs != 2 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "length != 2")
+		}
+
+		name, ok := args[0].(*tengo.String)
+		if !ok {
+			return nil, tengo.ErrInvalidArgumentType{
+				Name:     "name",
+				Expected: "string",
+				Found:    args[0].TypeName(),
+			}
+		}
+
+		value, ok := args[1].(*tengo.Bool)
+		if !ok {
+			return nil, tengo.ErrInvalidArgumentType{
+				Name:     "value",
+				Expected: "boolean",
+				Found:    args[1].TypeName(),
+			}
+		}
+
+		attr := slog.Bool(name.Value, !value.IsFalsy())
+		return &traceField{Value: attr}, nil
+	}
+}
+
+func (m *ImportModule) DurationField() tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		numArgs := len(args)
+		if numArgs != 2 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "length != 2")
+		}
+
+		name, ok := args[0].(*tengo.String)
+		if !ok {
+			return nil, tengo.ErrInvalidArgumentType{
+				Name:     "name",
+				Expected: "string",
+				Found:    args[0].TypeName(),
+			}
+		}
+
+		var t int64
+		switch tv := args[1].(type) {
+		case *tengo.Int:
+			t = tv.Value
+		case *tengo.Time:
+			t = tv.Value.UnixNano()
+		default:
+			return nil, tengo.ErrInvalidArgumentType{
+				Name:     "value",
+				Expected: "int|time",
+				Found:    args[1].TypeName(),
+			}
+		}
+
+		attr := slog.Duration(name.Value, time.Duration(t))
+		return &traceField{Value: attr}, nil
+	}
+}
+
 func (m *ImportModule) TimeField() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
 		numArgs := len(args)
@@ -269,8 +337,13 @@ func (m *ImportModule) log(level slog.Level, args ...tengo.Object) (ret tengo.Ob
 	}
 
 	ctx := context.TODO()
+	attrs := make([]any, 0)
+	for _, attr := range m.fields {
+		attrs = append(attrs, attr.Value)
+	}
+
 	if numArgs == 1 {
-		m.lg.Log(ctx, level, args[0].String())
+		m.lg.Log(ctx, level, args[0].String(), attrs...)
 		return tengo.UndefinedValue, nil
 	}
 
@@ -287,10 +360,6 @@ func (m *ImportModule) log(level slog.Level, args ...tengo.Object) (ret tengo.Ob
 		return nil, err
 	}
 
-	attrs := make([]any, 0)
-	for _, attr := range m.fields {
-		attrs = append(attrs, attr.Value)
-	}
 	m.lg.Log(ctx, level, s, attrs...)
 	return tengo.UndefinedValue, nil
 }

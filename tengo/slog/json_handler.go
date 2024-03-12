@@ -10,12 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/olive-io/bee/tengo/slog/internal/buffer"
 	"io"
 	"strconv"
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	"github.com/olive-io/bee/tengo/slog/internal/buffer"
 )
 
 // JSONHandler is a Handler that writes Records to an io.Writer as
@@ -45,6 +46,11 @@ func NewJSONHandler(w io.Writer, opts *HandlerOptions) *JSONHandler {
 // The handler ignores records whose level is lower.
 func (h *JSONHandler) Enabled(_ context.Context, level Level) bool {
 	return h.commonHandler.enabled(level)
+}
+
+func (h *JSONHandler) SetLevel(level Level) Handler {
+	h.commonHandler.opts.Level = level
+	return &JSONHandler{commonHandler: h.commonHandler}
 }
 
 // WithAttrs returns a new JSONHandler whose attributes consists

@@ -39,6 +39,8 @@ type Handler interface {
 	// to make a decision.
 	Enabled(context.Context, Level) bool
 
+	SetLevel(level Level) Handler
+
 	// Handle handles the Record.
 	// It will only be called when Enabled returns true.
 	// The Context argument is as for Enabled.
@@ -100,6 +102,10 @@ func newDefaultHandler(output func(uintptr, []byte) error) *defaultHandler {
 
 func (*defaultHandler) Enabled(_ context.Context, l Level) bool {
 	return l >= LevelInfo
+}
+
+func (h *defaultHandler) SetLevel(l Level) Handler {
+	return &defaultHandler{h.ch, h.output}
 }
 
 // Collect the level, attributes and message in a string and

@@ -53,7 +53,19 @@ func (h *traceHandler) AddHandler(handler slog.Handler) {
 // Enabled implements Handler.Enabled by reporting whether
 // level is at least as large as h's level.
 func (h *traceHandler) Enabled(_ context.Context, level slog.Level) bool {
-	return level >= h.level.Level()
+	return true
+}
+
+func (h *traceHandler) SetLevel(level slog.Level) slog.Handler {
+	h.RLock()
+	defer h.RUnlock()
+	handlers := make([]slog.Handler, 0)
+	for _, handler := range h.handlers {
+		handler.SetLevel(level)
+		handlers = append(handlers, handler)
+	}
+	h.level = level
+	return &traceHandler{level: level, handlers: handlers}
 }
 
 // Handle implements Handler.Handle.
@@ -61,6 +73,9 @@ func (h *traceHandler) Handle(ctx context.Context, r slog.Record) error {
 	h.RLock()
 	defer h.RUnlock()
 	for _, handler := range h.handlers {
+		if !handler.Enabled(ctx, r.Level) {
+			continue
+		}
 		if err := handler.Handle(ctx, r); err != nil {
 			return err
 		}
@@ -94,14 +109,17 @@ func (h *traceHandler) setLevel(level slog.Level) {
 	h.Lock()
 	defer h.Unlock()
 	h.level = level
+	for _, handler := range h.handlers {
+		handler.SetLevel(level)
+	}
 }
 
 // AddHandler adds a new slog.Handler to ImportModule
 func (m *ImportModule) AddHandler() tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		numArgs := len(args)
-		if numArgs <= 2 {
-			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "must greater than 2")
+		if numArgs < 2 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "must greater than 1")
 		}
 
 		out, ok := args[0].(*tengo.String)

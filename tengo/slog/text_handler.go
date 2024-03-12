@@ -45,6 +45,11 @@ func (h *TextHandler) Enabled(_ context.Context, level Level) bool {
 	return h.commonHandler.enabled(level)
 }
 
+func (h *TextHandler) SetLevel(level Level) Handler {
+	h.commonHandler.opts.Level = level
+	return &TextHandler{commonHandler: h.commonHandler}
+}
+
 // WithAttrs returns a new TextHandler whose attributes consists
 // of h's attributes followed by attrs.
 func (h *TextHandler) WithAttrs(attrs []Attr) Handler {
