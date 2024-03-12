@@ -206,6 +206,9 @@ func FuncARYE(fn func() ([]byte, error)) tengo.CallableFunc {
 		}
 		res, err := fn()
 		if err != nil {
+			if len(res) == 0 {
+				res = []byte(err.Error())
+			}
 			return wrapResError(err, res), nil
 		}
 		if len(res) > tengo.MaxBytesLen {

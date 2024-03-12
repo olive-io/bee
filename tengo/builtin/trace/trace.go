@@ -72,6 +72,7 @@ func NewTrace() *ImportModule {
 	attrs["info"] = &tengo.UserFunction{Name: "info", Value: tm.Info()}
 	attrs["warn"] = &tengo.UserFunction{Name: "warn", Value: tm.Warn()}
 	attrs["error"] = &tengo.UserFunction{Name: "error", Value: tm.Error()}
+	attrs["try"] = &tengo.UserFunction{Name: "try", Value: tm.Try()}
 	tm.Attrs = attrs
 	return tm
 }
@@ -268,6 +269,11 @@ func (m *ImportModule) log(level slog.Level, args ...tengo.Object) (ret tengo.Ob
 	}
 
 	ctx := context.TODO()
+	if numArgs == 1 {
+		m.lg.Log(ctx, level, args[0].String())
+		return tengo.UndefinedValue, nil
+	}
+
 	format, ok := args[0].(*tengo.String)
 	if !ok {
 		return nil, tengo.ErrInvalidArgumentType{
@@ -275,10 +281,6 @@ func (m *ImportModule) log(level slog.Level, args ...tengo.Object) (ret tengo.Ob
 			Expected: "string",
 			Found:    args[0].TypeName(),
 		}
-	}
-	if numArgs == 1 {
-		m.lg.Log(ctx, level, format.Value)
-		return tengo.UndefinedValue, nil
 	}
 	s, err := tengo.Format(format.Value, args[1:]...)
 	if err != nil {
@@ -363,6 +365,24 @@ func (m *ImportModule) Warn() tengo.CallableFunc {
 func (m *ImportModule) Error() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
 		return m.log(slog.LevelError, args...)
+	}
+}
+
+func (m *ImportModule) Try() tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		numArgs := len(args)
+		if numArgs != 1 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "missing args")
+		}
+
+		tErr, ok := args[0].(*tengo.Error)
+		if !ok {
+			return tengo.UndefinedValue, nil
+		}
+
+		m.log(slog.LevelError, tErr)
+		os.Exit(1)
+		return tengo.UndefinedValue, nil
 	}
 }
 
