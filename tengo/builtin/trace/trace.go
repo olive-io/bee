@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -78,6 +77,7 @@ func NewTrace() *ImportModule {
 	attrs["warn"] = &tengo.UserFunction{Name: "warn", Value: tm.Warn()}
 	attrs["error"] = &tengo.UserFunction{Name: "error", Value: tm.Error()}
 	attrs["try"] = &tengo.UserFunction{Name: "try", Value: tm.Try()}
+	attrs["assert"] = &tengo.UserFunction{Name: "assert", Value: tm.Assert()}
 	tm.Attrs = attrs
 	return tm
 }
@@ -322,6 +322,9 @@ func (m *ImportModule) Fields() tengo.CallableFunc {
 			}
 		}
 
+		fields = append(m.fields, fields...)
+		m.fields = fields
+
 		tm := &ImportModule{
 			level:   m.level,
 			handler: m.handler,
@@ -347,7 +350,7 @@ func (m *ImportModule) log(level internal.Level, args ...tengo.Object) (ret teng
 
 	if numArgs == 1 {
 		s := fmt.Sprintf("%v", args[0].String())
-		m.lg.Log(ctx, level, strings.Trim(s, `"`), attrs...)
+		m.lg.Log(ctx, level, unquote(s), attrs...)
 		return tengo.UndefinedValue, nil
 	}
 
@@ -444,8 +447,8 @@ func (m *ImportModule) Error() tengo.CallableFunc {
 func (m *ImportModule) Try() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
 		numArgs := len(args)
-		if numArgs != 1 {
-			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "missing args")
+		if numArgs == 0 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "args must great than 0")
 		}
 
 		tErr, ok := args[0].(*tengo.Error)
@@ -453,10 +456,51 @@ func (m *ImportModule) Try() tengo.CallableFunc {
 			return tengo.UndefinedValue, nil
 		}
 
+		attrs := make([]any, 0)
+
 		s := fmt.Sprintf("%v", tErr.Value.String())
-		m.lg.Log(context.TODO(), internal.LevelError, "occurs error",
-			internal.String("error", strings.Trim(s, `"`)))
+		attrs = append(attrs, internal.String("error", unquote(s)))
+
+		for _, arg := range args {
+			if field, ok := arg.(*traceField); ok {
+				attrs = append(attrs, field.Value)
+			}
+		}
+
+		m.lg.Log(context.TODO(), internal.LevelError, "occurred error", attrs...)
 		os.Exit(1)
+		return tengo.UndefinedValue, nil
+	}
+}
+
+func (m *ImportModule) Assert() tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		numArgs := len(args)
+		if numArgs < 2 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "args must grant than 1")
+		}
+
+		a := args[0]
+		b := args[1]
+		if a.String() == b.String() {
+			return tengo.UndefinedValue, nil
+		}
+
+		text := fmt.Sprintf(`assert: got %v, expected %v`, a.String(), b.String())
+		attr := internal.String("error", text)
+
+		attrs := make([]any, 0)
+		attrs = append(attrs, attr)
+
+		for _, arg := range args {
+			if field, ok := arg.(*traceField); ok {
+				attrs = append(attrs, field.Value)
+			}
+		}
+
+		m.lg.Log(context.TODO(), internal.LevelError, "assert error", attrs...)
+		os.Exit(1)
+
 		return tengo.UndefinedValue, nil
 	}
 }

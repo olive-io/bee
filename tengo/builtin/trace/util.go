@@ -15,6 +15,8 @@
 package trace
 
 import (
+	"strings"
+
 	"github.com/olive-io/bee/tengo/builtin/trace/internal"
 )
 
@@ -33,4 +35,8 @@ func parseLevel(text string) (internal.Level, bool) {
 		return 0, false
 	}
 	return level, true
+}
+
+func unquote(s string) string {
+	return strings.Trim(s, `"`)
 }
