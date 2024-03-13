@@ -323,6 +323,7 @@ func (m *ImportModule) Fields() tengo.CallableFunc {
 		}
 
 		tm := &ImportModule{
+			level:   m.level,
 			handler: m.handler,
 			lg:      internal.New(m.handler),
 			Attrs:   m.Attrs,
@@ -452,7 +453,9 @@ func (m *ImportModule) Try() tengo.CallableFunc {
 			return tengo.UndefinedValue, nil
 		}
 
-		m.log(internal.LevelError, tErr)
+		s := fmt.Sprintf("%v", tErr.Value.String())
+		m.lg.Log(context.TODO(), internal.LevelError, "occurs error",
+			internal.String("error", strings.Trim(s, `"`)))
 		os.Exit(1)
 		return tengo.UndefinedValue, nil
 	}
