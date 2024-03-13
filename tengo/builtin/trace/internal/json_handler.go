@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package slog
+package internal
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/olive-io/bee/tengo/slog/internal/buffer"
+	"github.com/olive-io/bee/tengo/builtin/trace/internal/buffer"
 )
 
 // JSONHandler is a Handler that writes Records to an io.Writer as

@@ -23,7 +23,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
-	"github.com/olive-io/bee/tengo/slog"
+	"github.com/olive-io/bee/tengo/builtin/trace/internal"
 )
 
 const (
@@ -111,7 +111,7 @@ func (m *ImportModule) AddHook() tengo.CallableFunc {
 			return nil, err
 		}
 
-		attrs := make([]slog.Attr, 0)
+		attrs := make([]internal.Attr, 0)
 		if len(args) > 1 {
 			for _, arg := range args[2:] {
 				if attr, ok := arg.(*traceField); ok {
@@ -120,14 +120,14 @@ func (m *ImportModule) AddHook() tengo.CallableFunc {
 			}
 		}
 
-		options := &slog.HandlerOptions{
+		options := &internal.HandlerOptions{
 			Level: level,
-			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			ReplaceAttr: func(groups []string, a internal.Attr) internal.Attr {
 				return a
 			},
 		}
 
-		handler := slog.NewJSONHandler(hk, options)
+		handler := internal.NewJSONHandler(hk, options)
 		m.handler.AddHandler(handler.WithAttrs(attrs))
 
 		return tengo.UndefinedValue, nil

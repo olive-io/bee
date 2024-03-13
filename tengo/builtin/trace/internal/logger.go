@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package slog
+package internal
 
 import (
 	"context"
@@ -10,8 +10,6 @@ import (
 	"runtime"
 	"sync/atomic"
 	"time"
-
-	"github.com/olive-io/bee/tengo/slog/internal"
 )
 
 var defaultLogger atomic.Value
@@ -38,7 +36,7 @@ func SetDefault(l *Logger) {
 }
 
 // handlerWriter is an io.Writer that calls a Handler.
-// It is used to link the default log.Logger to the default slog.Logger.
+// It is used to link the default log.Logger to the default internal.Logger.
 type handlerWriter struct {
 	h         Handler
 	level     Level
@@ -50,7 +48,7 @@ func (w *handlerWriter) Write(buf []byte) (int, error) {
 		return 0, nil
 	}
 	var pc uintptr
-	if !internal.IgnorePC && w.capturePC {
+	if w.capturePC {
 		// skip [runtime.Callers, w.Write, Logger.Output, log.Print]
 		var pcs [1]uintptr
 		runtime.Callers(4, pcs[:])
@@ -207,12 +205,10 @@ func (l *Logger) log(ctx context.Context, level Level, msg string, args ...any) 
 		return
 	}
 	var pc uintptr
-	if !internal.IgnorePC {
-		var pcs [1]uintptr
-		// skip [runtime.Callers, this function, this function's caller]
-		runtime.Callers(3, pcs[:])
-		pc = pcs[0]
-	}
+	var pcs [1]uintptr
+	// skip [runtime.Callers, this function, this function's caller]
+	runtime.Callers(3, pcs[:])
+	pc = pcs[0]
 	r := NewRecord(time.Now(), level, msg, pc)
 	r.Add(args...)
 	if ctx == nil {
@@ -227,12 +223,10 @@ func (l *Logger) logAttrs(ctx context.Context, level Level, msg string, attrs ..
 		return
 	}
 	var pc uintptr
-	if !internal.IgnorePC {
-		var pcs [1]uintptr
-		// skip [runtime.Callers, this function, this function's caller]
-		runtime.Callers(3, pcs[:])
-		pc = pcs[0]
-	}
+	var pcs [1]uintptr
+	// skip [runtime.Callers, this function, this function's caller]
+	runtime.Callers(3, pcs[:])
+	pc = pcs[0]
 	r := NewRecord(time.Now(), level, msg, pc)
 	r.AddAttrs(attrs...)
 	if ctx == nil {

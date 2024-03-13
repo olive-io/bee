@@ -16,45 +16,47 @@ package trace
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
-	"github.com/olive-io/bee/tengo/slog"
+	"github.com/olive-io/bee/tengo/builtin/trace/internal"
 )
 
 var (
 	Importable tengo.Importable = NewTrace()
 )
 
-const defaultLevel = slog.LevelInfo
+const defaultLevel = internal.LevelInfo
 
 type ImportModule struct {
 	tengo.ObjectImpl
 
-	level   slog.Level
+	level   internal.Level
 	handler *traceHandler
-	lg      *slog.Logger
+	lg      *internal.Logger
 	Attrs   map[string]tengo.Object
 	fields  []*traceField
 }
 
 func NewTrace() *ImportModule {
-	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	jsonHandler := internal.NewJSONHandler(os.Stdout, &internal.HandlerOptions{
 		AddSource: false,
 		Level:     defaultLevel,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+		ReplaceAttr: func(groups []string, a internal.Attr) internal.Attr {
 			switch a.Key {
-			case slog.TimeKey, slog.LevelKey:
-				return slog.Attr{}
+			case internal.TimeKey, internal.LevelKey:
+				return internal.Attr{}
 			}
 			return a
 		},
 	})
 
 	handler := newTraceHandler(defaultLevel, jsonHandler)
-	lg := slog.New(handler)
+	lg := internal.New(handler)
 	tm := &ImportModule{
 		handler: handler,
 		lg:      lg,
@@ -150,7 +152,7 @@ func (m *ImportModule) IntField() tengo.CallableFunc {
 			}
 		}
 
-		attr := slog.Int64(name.Value, value.Value)
+		attr := internal.Int64(name.Value, value.Value)
 		return &traceField{Value: attr}, nil
 	}
 }
@@ -180,7 +182,7 @@ func (m *ImportModule) FloatField() tengo.CallableFunc {
 			}
 		}
 
-		attr := slog.Float64(name.Value, value.Value)
+		attr := internal.Float64(name.Value, value.Value)
 		return &traceField{Value: attr}, nil
 	}
 }
@@ -210,7 +212,7 @@ func (m *ImportModule) StringField() tengo.CallableFunc {
 			}
 		}
 
-		attr := slog.String(name.Value, value.Value)
+		attr := internal.String(name.Value, value.Value)
 		return &traceField{Value: attr}, nil
 	}
 }
@@ -240,7 +242,7 @@ func (m *ImportModule) BoolField() tengo.CallableFunc {
 			}
 		}
 
-		attr := slog.Bool(name.Value, !value.IsFalsy())
+		attr := internal.Bool(name.Value, !value.IsFalsy())
 		return &traceField{Value: attr}, nil
 	}
 }
@@ -275,7 +277,7 @@ func (m *ImportModule) DurationField() tengo.CallableFunc {
 			}
 		}
 
-		attr := slog.Duration(name.Value, time.Duration(t))
+		attr := internal.Duration(name.Value, time.Duration(t))
 		return &traceField{Value: attr}, nil
 	}
 }
@@ -305,7 +307,7 @@ func (m *ImportModule) TimeField() tengo.CallableFunc {
 			}
 		}
 
-		attr := slog.Time(name.Value, value.Value)
+		attr := internal.Time(name.Value, value.Value)
 		return &traceField{Value: attr}, nil
 	}
 }
@@ -322,7 +324,7 @@ func (m *ImportModule) Fields() tengo.CallableFunc {
 
 		tm := &ImportModule{
 			handler: m.handler,
-			lg:      slog.New(m.handler),
+			lg:      internal.New(m.handler),
 			Attrs:   m.Attrs,
 			fields:  fields,
 		}
@@ -330,7 +332,7 @@ func (m *ImportModule) Fields() tengo.CallableFunc {
 	}
 }
 
-func (m *ImportModule) log(level slog.Level, args ...tengo.Object) (ret tengo.Object, err error) {
+func (m *ImportModule) log(level internal.Level, args ...tengo.Object) (ret tengo.Object, err error) {
 	numArgs := len(args)
 	if numArgs == 0 {
 		return nil, tengo.ErrWrongNumArguments
@@ -343,7 +345,8 @@ func (m *ImportModule) log(level slog.Level, args ...tengo.Object) (ret tengo.Ob
 	}
 
 	if numArgs == 1 {
-		m.lg.Log(ctx, level, args[0].String(), attrs...)
+		s := fmt.Sprintf("%v", args[0].String())
+		m.lg.Log(ctx, level, strings.Trim(s, `"`), attrs...)
 		return tengo.UndefinedValue, nil
 	}
 
@@ -375,7 +378,7 @@ func (m *ImportModule) String() string {
 
 // Copy returns a copy of the type.
 func (m *ImportModule) Copy() tengo.Object {
-	lg := slog.New(m.handler)
+	lg := internal.New(m.handler)
 	return &ImportModule{
 		handler: m.handler,
 		lg:      lg,
@@ -415,25 +418,25 @@ func (m *ImportModule) CanCall() bool { return true }
 
 func (m *ImportModule) Debug() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
-		return m.log(slog.LevelDebug, args...)
+		return m.log(internal.LevelDebug, args...)
 	}
 }
 
 func (m *ImportModule) Info() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
-		return m.log(slog.LevelInfo, args...)
+		return m.log(internal.LevelInfo, args...)
 	}
 }
 
 func (m *ImportModule) Warn() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
-		return m.log(slog.LevelWarn, args...)
+		return m.log(internal.LevelWarn, args...)
 	}
 }
 
 func (m *ImportModule) Error() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
-		return m.log(slog.LevelError, args...)
+		return m.log(internal.LevelError, args...)
 	}
 }
 
@@ -449,7 +452,7 @@ func (m *ImportModule) Try() tengo.CallableFunc {
 			return tengo.UndefinedValue, nil
 		}
 
-		m.log(slog.LevelError, tErr)
+		m.log(internal.LevelError, tErr)
 		os.Exit(1)
 		return tengo.UndefinedValue, nil
 	}
@@ -457,7 +460,7 @@ func (m *ImportModule) Try() tengo.CallableFunc {
 
 type traceField struct {
 	tengo.ObjectImpl
-	Value slog.Attr
+	Value internal.Attr
 }
 
 func (tf *traceField) TypeName() string {
@@ -465,7 +468,7 @@ func (tf *traceField) TypeName() string {
 }
 
 func (tf *traceField) Copy() tengo.Object {
-	attr := slog.Attr{Key: tf.Value.Key, Value: tf.Value.Value}
+	attr := internal.Attr{Key: tf.Value.Key, Value: tf.Value.Value}
 	return &traceField{Value: attr}
 }
 

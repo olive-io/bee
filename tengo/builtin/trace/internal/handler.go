@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package slog
+package internal
 
 import (
 	"context"
@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/olive-io/bee/tengo/slog/internal/buffer"
+	"github.com/olive-io/bee/tengo/builtin/trace/internal/buffer"
 )
 
-// A Handler handles log records produced by a Logger..
+// A Handler handles log records produced by a Logger.
 //
 // A typical handler may print log records to standard error,
 // or write them to a file or database, or perhaps augment them

@@ -21,7 +21,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
-	"github.com/olive-io/bee/tengo/slog"
+	"github.com/olive-io/bee/tengo/builtin/trace/internal"
 )
 
 // A traceHandler wraps a Handler with an Enabled method
@@ -29,22 +29,22 @@ import (
 type traceHandler struct {
 	sync.RWMutex
 
-	level    slog.Leveler
-	handlers []slog.Handler
+	level    internal.Leveler
+	handlers []internal.Handler
 }
 
 // newTraceHandler returns a traceHandler with the given level.
 // All methods except Enabled delegate to h.
-func newTraceHandler(level slog.Leveler, h slog.Handler) *traceHandler {
+func newTraceHandler(level internal.Leveler, h internal.Handler) *traceHandler {
 	// Optimization: avoid chains of LevelHandlers.
-	handlers := []slog.Handler{h}
+	handlers := []internal.Handler{h}
 	if lh, ok := h.(*traceHandler); ok {
 		handlers = lh.handlers
 	}
 	return &traceHandler{level: level, handlers: handlers}
 }
 
-func (h *traceHandler) AddHandler(handler slog.Handler) {
+func (h *traceHandler) AddHandler(handler internal.Handler) {
 	h.Lock()
 	defer h.Unlock()
 	h.handlers = append(h.handlers, handler)
@@ -52,14 +52,14 @@ func (h *traceHandler) AddHandler(handler slog.Handler) {
 
 // Enabled implements Handler.Enabled by reporting whether
 // level is at least as large as h's level.
-func (h *traceHandler) Enabled(_ context.Context, level slog.Level) bool {
+func (h *traceHandler) Enabled(_ context.Context, level internal.Level) bool {
 	return true
 }
 
-func (h *traceHandler) SetLevel(level slog.Level) slog.Handler {
+func (h *traceHandler) SetLevel(level internal.Level) internal.Handler {
 	h.RLock()
 	defer h.RUnlock()
-	handlers := make([]slog.Handler, 0)
+	handlers := make([]internal.Handler, 0)
 	for _, handler := range h.handlers {
 		handler.SetLevel(level)
 		handlers = append(handlers, handler)
@@ -69,7 +69,7 @@ func (h *traceHandler) SetLevel(level slog.Level) slog.Handler {
 }
 
 // Handle implements Handler.Handle.
-func (h *traceHandler) Handle(ctx context.Context, r slog.Record) error {
+func (h *traceHandler) Handle(ctx context.Context, r internal.Record) error {
 	h.RLock()
 	defer h.RUnlock()
 	for _, handler := range h.handlers {
@@ -84,10 +84,10 @@ func (h *traceHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 // WithAttrs implements Handler.WithAttrs.
-func (h *traceHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (h *traceHandler) WithAttrs(attrs []internal.Attr) internal.Handler {
 	h.RLock()
 	defer h.RUnlock()
-	handlers := make([]slog.Handler, 0)
+	handlers := make([]internal.Handler, 0)
 	for _, handler := range h.handlers {
 		handlers = append(handlers, handler.WithAttrs(attrs))
 	}
@@ -95,17 +95,17 @@ func (h *traceHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 }
 
 // WithGroup implements Handler.WithGroup.
-func (h *traceHandler) WithGroup(name string) slog.Handler {
+func (h *traceHandler) WithGroup(name string) internal.Handler {
 	h.RLock()
 	defer h.RUnlock()
-	handlers := make([]slog.Handler, 0)
+	handlers := make([]internal.Handler, 0)
 	for _, handler := range h.handlers {
 		handlers = append(handlers, handler.WithGroup(name))
 	}
 	return &traceHandler{level: h.level, handlers: handlers}
 }
 
-func (h *traceHandler) setLevel(level slog.Level) {
+func (h *traceHandler) setLevel(level internal.Level) {
 	h.Lock()
 	defer h.Unlock()
 	h.level = level
@@ -149,7 +149,7 @@ func (m *ImportModule) AddHandler() tengo.CallableFunc {
 			level = defaultLevel
 		}
 
-		attrs := make([]slog.Attr, 0)
+		attrs := make([]internal.Attr, 0)
 		if len(args) > 2 {
 			for _, arg := range args[2:] {
 				if attr, ok := arg.(*traceField); ok {
@@ -158,14 +158,14 @@ func (m *ImportModule) AddHandler() tengo.CallableFunc {
 			}
 		}
 
-		options := &slog.HandlerOptions{
+		options := &internal.HandlerOptions{
 			Level: level,
-			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			ReplaceAttr: func(groups []string, a internal.Attr) internal.Attr {
 				return a
 			},
 		}
 
-		handler := slog.NewJSONHandler(writer, options)
+		handler := internal.NewJSONHandler(writer, options)
 		m.handler.AddHandler(handler.WithAttrs(attrs))
 
 		return tengo.UndefinedValue, nil

@@ -15,20 +15,20 @@
 package trace
 
 import (
-	"github.com/olive-io/bee/tengo/slog"
+	"github.com/olive-io/bee/tengo/builtin/trace/internal"
 )
 
-func parseLevel(text string) (slog.Level, bool) {
-	var level slog.Level
+func parseLevel(text string) (internal.Level, bool) {
+	var level internal.Level
 	switch text {
 	case "debug":
-		level = slog.LevelDebug
+		level = internal.LevelDebug
 	case "info":
-		level = slog.LevelInfo
+		level = internal.LevelInfo
 	case "warn":
-		level = slog.LevelWarn
+		level = internal.LevelWarn
 	case "error":
-		level = slog.LevelError
+		level = internal.LevelError
 	default:
 		return 0, false
 	}
