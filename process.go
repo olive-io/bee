@@ -135,7 +135,7 @@ LOOP:
 			rspProperties := map[string]any{}
 
 			switch act.(type) {
-			case *service.ServiceTask:
+			case *service.Node:
 
 				sv := process.DecodeServiceTask(tProps, tHeaders)
 				runTasks = append(runTasks, sv)
@@ -178,7 +178,7 @@ LOOP:
 					}
 				}
 
-			case *script.ScriptTask:
+			case *script.Node:
 
 				task := process.DecodeScriptTask(tProps, tHeaders)
 				runTasks = append(runTasks, task)

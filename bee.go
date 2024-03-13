@@ -211,7 +211,15 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 	}
 
 	rctx := cmd.NewContext(ctx, lg, conn, sm)
-	eOpts := []client.ExecOption{client.ExecWithRootDir(bm.Root)}
+	eOpts := []client.ExecOption{
+		client.ExecWithRootDir(bm.Root),
+	}
+
+	extraArgs := make([]string, 0)
+	for name, arg := range options.ExtraArgs {
+		extraArgs = append(extraArgs, "--"+name+"="+arg)
+	}
+	eOpts = append(eOpts, client.ExecWithArgs(extraArgs...))
 
 	if cmd.PreRun != nil {
 		if _, err = cmd.PreRun(rctx, eOpts...); err != nil {

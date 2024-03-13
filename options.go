@@ -83,11 +83,12 @@ func SetCaller(caller Callable) Option {
 }
 
 type RunOptions struct {
-	Callback callback.ICallBack
-	Filter   filter.IFilter
-	Tracer   chan tracing.ITrace
-	Metadata map[string]any
-	sync     bool
+	Callback  callback.ICallBack
+	Filter    filter.IFilter
+	Tracer    chan tracing.ITrace
+	Metadata  map[string]any
+	ExtraArgs map[string]string
+	sync      bool
 }
 
 func newRunOptions() *RunOptions {
@@ -131,6 +132,17 @@ func WithMetadata(md map[string]any) RunOption {
 		}
 		for key, value := range md {
 			opt.Metadata[key] = value
+		}
+	}
+}
+
+func WithArgs(args map[string]string) RunOption {
+	return func(opt *RunOptions) {
+		if opt.ExtraArgs == nil {
+			opt.ExtraArgs = map[string]string{}
+		}
+		for key, value := range args {
+			opt.ExtraArgs[key] = value
 		}
 	}
 }

@@ -108,7 +108,7 @@ func (h *defaultHandler) SetLevel(l Level) Handler {
 	return &defaultHandler{h.ch, h.output}
 }
 
-// Collect the level, attributes and message in a string and
+// Handle Collect the level, attributes and message in a string and
 // write it with the default log.Logger.
 // Let the log.Logger handle time and file/line.
 func (h *defaultHandler) Handle(ctx context.Context, r Record) error {

@@ -106,15 +106,16 @@ func newRuntime(t *testing.T) (*bee.Runtime, *inv.Manager, func()) {
 }
 
 func Test_Runtime(t *testing.T) {
-	sources := []string{"host2", "localhost"}
+	sources := []string{"host1", "localhost"}
 	rt, inventory, cancel := newRuntime(t)
 	defer cancel()
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
 	options = append(options, bee.WithRunSync(true))
+	options = append(options, bee.WithArgs(map[string]string{"hook": "http://127.0.0.1:5100"}))
 	inventory.AddSources(sources...)
-	data, err := rt.Execute(ctx, "host2", "ping", options...)
+	data, err := rt.Execute(ctx, "host1", "ping", options...)
 	if err != nil {
 		t.Fatal(err)
 	}

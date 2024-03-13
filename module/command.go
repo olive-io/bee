@@ -153,11 +153,13 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 		opt(eOpts)
 	}
 
+	args := make([]string, 0)
 	command.Flags().VisitAll(func(flag *pflag.Flag) {
 		value := ctx.Variables.GetDefault(PrefixFlag+flag.Name, flag.Value.String())
 		arg := "--" + flag.Name + "=" + value
-		eOpts.Args = append(eOpts.Args, arg)
+		args = append(args, arg)
 	})
+	args = append(args, eOpts.Args...)
 
 	options := make([]client.ExecOption, 0)
 	ext, ok := KnownExt(path.Ext(command.Script))
@@ -198,13 +200,13 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	}
 
 	options = append(options, client.ExecWithArgs(script))
-	options = append(options, client.ExecWithArgs(eOpts.Args...))
+	options = append(options, client.ExecWithArgs(args...))
 	options = append(options, client.ExecWithRootDir(root))
 	for key, value := range eOpts.Environments {
 		options = append(options, client.ExecWithEnv(key, value))
 	}
 
-	shell := fmt.Sprintf("%s %s %s", repl, script, strings.Join(eOpts.Args, " "))
+	shell := fmt.Sprintf("%s %s %s", repl, script, strings.Join(args, " "))
 	lg.Debug("remote execute", zap.String("command", shell))
 	cmd, err := conn.Execute(ctx, repl, options...)
 	if err != nil {
