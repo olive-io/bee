@@ -1,8 +1,13 @@
 env:
   - GO111MODULE=on
-#before:
-#  hooks:
-#    - go mod tidy
+
+before:
+  hooks:
+    - go mod tidy
+
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
 builds:
   - binary: tengo
     env:
@@ -12,6 +17,14 @@ builds:
       - darwin
       - linux
       - windows
+
+    goarch:
+      - amd64
+      - arm64
+
+    ldflags:
+      - -s -w
+
 archives:
   - id: bee
     format_overrides:
