@@ -78,13 +78,13 @@ func (mg *Manager) LoadDir(dir string) error {
 			return err
 		}
 		if hk, ok := hook.Hooks[m.Name]; ok {
-			forCommandHook(m.Command, hk)
+			forCommandHook(&m.Command, hk)
 		}
 		for i := range m.Commands {
 			cmd := m.Commands[i]
 			name := m.Name + cmd.Name
 			if hk, ok := hook.Hooks[name]; ok {
-				forCommandHook(m.Command, hk)
+				forCommandHook(&m.Command, hk)
 			}
 		}
 		mg.LoadModule(m)

@@ -38,7 +38,7 @@ func LoadDir(name string) (*Module, error) {
 	}
 
 	m := &Module{
-		Command: command,
+		Command: *command,
 		Dir:     name,
 	}
 
@@ -117,8 +117,8 @@ func validateScript(c *Command, dir string) error {
 }
 
 type Module struct {
-	*Command `yaml:",inline"`
-	Dir      string `yaml:"dir"`
+	Command `yaml:",inline"`
+	Dir     string `yaml:"dir"`
 }
 
 func (m *Module) Execute(args ...string) (*Command, error) {

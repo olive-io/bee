@@ -129,7 +129,7 @@ func (c *Command) ParseCmd() *cobra.Command {
 	for _, param := range c.Params {
 		pv := param.InitValue()
 		_ = pv.Set(param.Default)
-		flags.VarP(pv, param.Name, param.Short, param.Description)
+		flags.VarP(pv, param.Name, param.Short, param.Desc)
 	}
 	for _, sc := range c.Commands {
 		sub := sc.ParseCmd()

@@ -21,13 +21,13 @@ import (
 )
 
 type Schema struct {
-	Name        string       `yaml:"name"`
-	Type        string       `yaml:"type"`
-	Short       string       `yaml:"short"`
-	Description string       `yaml:"description"`
-	Default     string       `yaml:"default"`
-	Example     string       `yaml:"example"`
-	Value       *SchemaValue `yaml:"-"`
+	Name    string       `yaml:"name"`
+	Type    string       `yaml:"type"`
+	Short   string       `yaml:"short"`
+	Desc    string       `yaml:"desc"`
+	Default string       `yaml:"default"`
+	Example string       `yaml:"example"`
+	Value   *SchemaValue `yaml:"-"`
 }
 
 func (s *Schema) InitValue() *SchemaValue {

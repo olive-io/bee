@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	"github.com/hashicorp/go-multierror"
 	json "github.com/json-iterator/go"
 	"github.com/olive-io/bee/plugins/callback"
 	"github.com/olive-io/bee/plugins/filter"
@@ -134,6 +135,7 @@ LOOP:
 			tProps, tHeaders := ft.OnPreTaskProps(*id, tt.GetProperties(), tt.GetHeaders())
 			rspProperties := map[string]any{}
 
+			var aErr error
 			switch act.(type) {
 			case *service.Node:
 
@@ -154,18 +156,18 @@ LOOP:
 						in, _ := json.Marshal(sv.Args)
 						data, err := caller(ctx, host, sv.Action, in, ropts...)
 						if err != nil {
+							aErr = multierror.Append(aErr, err)
 							result.ErrMsg = err.Error()
 							cb.RunnerOkFailed(result)
-							tt.Do(activity.WithErr(err))
-							break LOOP
+							continue
 						}
 
 						stdout := map[string]any{}
 						if err = json.Unmarshal(data, &stdout); err != nil {
+							aErr = multierror.Append(aErr, err)
 							result.ErrMsg = err.Error()
 							cb.RunnerOkFailed(result)
-							tt.Do(activity.WithErr(err))
-							break LOOP
+							continue
 						}
 
 						stdout = ft.OnPostTaskStdout(*id, stdout)
@@ -202,18 +204,18 @@ LOOP:
 					ropts := append(opts, WithMetadata(tHeaders))
 					data, err := rt.Execute(ctx, host, shell, ropts...)
 					if err != nil {
+						aErr = multierror.Append(aErr, err)
 						result.ErrMsg = err.Error()
 						cb.RunnerOkFailed(result)
-						tt.Do(activity.WithErr(err))
-						break LOOP
+						continue
 					}
 
 					stdout := map[string]any{}
 					if err = json.Unmarshal(data, &stdout); err != nil {
+						aErr = multierror.Append(aErr, err)
 						result.ErrMsg = err.Error()
 						cb.RunnerOkFailed(result)
-						tt.Do(activity.WithErr(err))
-						break LOOP
+						continue
 					}
 
 					stdout = ft.OnPostTaskStdout(*id, stdout)
@@ -226,7 +228,13 @@ LOOP:
 				}
 			}
 
-			tt.Do(activity.WithProperties(rspProperties))
+			actOpts := make([]activity.DoOption, 0)
+			if aErr != nil {
+				actOpts = append(actOpts, activity.WithErr(aErr))
+			}
+			actOpts = append(actOpts, activity.WithProperties(rspProperties))
+
+			tt.Do(actOpts...)
 		case tracing.ErrorTrace:
 			err = tt.Error
 			break LOOP
