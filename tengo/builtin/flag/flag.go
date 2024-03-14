@@ -112,7 +112,7 @@ func (f *ImportFlag) Int() tengo.CallableFunc {
 			}
 		}
 
-		value, ok := args[1].(*tengo.Int)
+		value, ok := args[1].Copy().(*tengo.Int)
 		if !ok {
 			return nil, tengo.ErrInvalidArgumentType{
 				Name:     "value",
@@ -151,7 +151,7 @@ func (f *ImportFlag) IntArray() tengo.CallableFunc {
 			}
 		}
 
-		value, ok := args[1].(*tengo.Array)
+		value, ok := args[1].Copy().(*tengo.Array)
 		if !ok {
 			return nil, tengo.ErrInvalidArgumentType{
 				Name:     "value",
@@ -198,7 +198,7 @@ func (f *ImportFlag) Float() tengo.CallableFunc {
 			}
 		}
 
-		value, ok := args[1].(*tengo.Float)
+		value, ok := args[1].Copy().(*tengo.Float)
 		if !ok {
 			return nil, tengo.ErrInvalidArgumentType{
 				Name:     "value",
@@ -237,7 +237,7 @@ func (f *ImportFlag) FloatArray() tengo.CallableFunc {
 			}
 		}
 
-		value, ok := args[1].(*tengo.Array)
+		value, ok := args[1].Copy().(*tengo.Array)
 		if !ok {
 			return nil, tengo.ErrInvalidArgumentType{
 				Name:     "value",
@@ -284,7 +284,7 @@ func (f *ImportFlag) String() tengo.CallableFunc {
 			}
 		}
 
-		value, ok := args[1].(*tengo.String)
+		value, ok := args[1].Copy().(*tengo.String)
 		if !ok {
 			return nil, tengo.ErrInvalidArgumentType{
 				Name:     "value",
@@ -323,7 +323,7 @@ func (f *ImportFlag) StringArray() tengo.CallableFunc {
 			}
 		}
 
-		value, ok := args[1].(*tengo.Array)
+		value, ok := args[1].Copy().(*tengo.Array)
 		if !ok {
 			return nil, tengo.ErrInvalidArgumentType{
 				Name:     "value",
@@ -370,7 +370,7 @@ func (f *ImportFlag) Bool() tengo.CallableFunc {
 			}
 		}
 
-		value, ok := args[1].(*tengo.Bool)
+		value, ok := args[1].Copy().(*tengo.Bool)
 		if !ok {
 			return nil, tengo.ErrInvalidArgumentType{
 				Name:     "value",
