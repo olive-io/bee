@@ -124,6 +124,7 @@ func (c *Command) ParseCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
+	cmd.FParseErrWhitelist.UnknownFlags = true
 	flags := cmd.PersistentFlags()
 	for _, param := range c.Params {
 		pv := param.InitValue()
@@ -206,7 +207,7 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 		options = append(options, client.ExecWithEnv(key, value))
 	}
 
-	shell := fmt.Sprintf("%s %s %s", repl, script, strings.Join(args, " "))
+	shell := fmt.Sprintf("%s -import %s %s %s", repl, resolve, script, strings.Join(args, " "))
 	lg.Debug("remote execute", zap.String("command", shell))
 	cmd, err := conn.Execute(ctx, repl, options...)
 	if err != nil {

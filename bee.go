@@ -171,7 +171,7 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 
 	if before, after, ok := strings.Cut(mname, "."); ok {
 		mname = before
-		args = append(args, after)
+		args = append([]string{after}, args...)
 	}
 	bm, ok := rt.modules.Find(mname)
 	if !ok {
@@ -180,7 +180,7 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 
 	cmd, err := bm.Execute(args...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "parse command")
 	}
 
 	if !cmd.Runnable() {

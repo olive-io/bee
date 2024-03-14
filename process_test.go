@@ -69,7 +69,9 @@ func TestRuntime_PlayWithService(t *testing.T) {
 				Name:   "first task",
 				Id:     "t1",
 				Action: "ping",
-				Args:   map[string]any{},
+				Args: map[string]any{
+					"data": "xxx",
+				},
 				Catch: &process.Handler{
 					Name:   "restart service",
 					Kind:   "service",

@@ -36,7 +36,7 @@ import (
 )
 
 const hostText = `
-host1 bee_host=192.168.2.32 bee_user=root bee_ssh_passwd=xxx
+host1 bee_host=192.168.2.141 bee_user=root bee_ssh_passwd=xxx
 localhost bee_connect=grpc bee_host=127.0.0.1 bee_port=15250 bee_platform=darwin bee_arch=arm64 bee_home=/tmp/bee
 host2 bee_host=192.168.2.164 bee_connect=winrm bee_platform=windows bee_user=Administrator bee_home=C:\\Windows\\Temp\\bee 
 `
@@ -113,9 +113,9 @@ func Test_Runtime(t *testing.T) {
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
 	options = append(options, bee.WithRunSync(true))
-	options = append(options, bee.WithArgs(map[string]string{"hook": "http://127.0.0.1:5100"}))
+	options = append(options, bee.WithArgs(map[string]string{"hook": "http://127.0.0.1:5100", "a": "bbb"}))
 	inventory.AddSources(sources...)
-	data, err := rt.Execute(ctx, "host1", "ping", options...)
+	data, err := rt.Execute(ctx, "host1", "oracle.test option=sys/oracle@orcl", options...)
 	if err != nil {
 		t.Fatal(err)
 	}
