@@ -41,7 +41,9 @@ changelog:
   sort: desc
 
 nfpms:
-  -
+  - id: bee
     formats:
       - deb
       - rpm
+
+    bindir: /usr/local/sbin
