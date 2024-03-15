@@ -29,7 +29,7 @@ var (
 	Importable tengo.Importable = NewTrace()
 )
 
-const defaultLevel = internal.LevelInfo
+const defaultLevel = internal.LevelPrint
 
 type ImportModule struct {
 	tengo.ObjectImpl
@@ -76,6 +76,7 @@ func NewTrace() *ImportModule {
 	attrs["info"] = &tengo.UserFunction{Name: "info", Value: tm.Info()}
 	attrs["warn"] = &tengo.UserFunction{Name: "warn", Value: tm.Warn()}
 	attrs["error"] = &tengo.UserFunction{Name: "error", Value: tm.Error()}
+	attrs["print"] = &tengo.UserFunction{Name: "print", Value: tm.Print()}
 	attrs["try"] = &tengo.UserFunction{Name: "try", Value: tm.Try()}
 	attrs["assert"] = &tengo.UserFunction{Name: "assert", Value: tm.Assert()}
 	tm.Attrs = attrs
@@ -444,6 +445,12 @@ func (m *ImportModule) Error() tengo.CallableFunc {
 	}
 }
 
+func (m *ImportModule) Print() tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		return m.log(internal.LevelPrint, args...)
+	}
+}
+
 func (m *ImportModule) Try() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
 		numArgs := len(args)
@@ -467,7 +474,7 @@ func (m *ImportModule) Try() tengo.CallableFunc {
 			}
 		}
 
-		m.lg.Log(context.TODO(), internal.LevelError, "occurred error", attrs...)
+		m.lg.Log(context.TODO(), internal.LevelPrint, "occurred error", attrs...)
 		os.Exit(1)
 		return tengo.UndefinedValue, nil
 	}
@@ -498,7 +505,7 @@ func (m *ImportModule) Assert() tengo.CallableFunc {
 			}
 		}
 
-		m.lg.Log(context.TODO(), internal.LevelError, "assert error", attrs...)
+		m.lg.Log(context.TODO(), internal.LevelPrint, "assert error", attrs...)
 		os.Exit(1)
 
 		return tengo.UndefinedValue, nil

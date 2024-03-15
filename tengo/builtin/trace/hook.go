@@ -80,8 +80,8 @@ func (h *hook) Write(data []byte) (n int, err error) {
 func (m *ImportModule) AddHook() tengo.CallableFunc {
 	return func(args ...tengo.Object) (ret tengo.Object, err error) {
 		numArgs := len(args)
-		if numArgs <= 1 {
-			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "must greater than 1")
+		if numArgs == 0 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "missing args")
 		}
 
 		url, ok := args[0].(*tengo.String)
@@ -93,29 +93,33 @@ func (m *ImportModule) AddHook() tengo.CallableFunc {
 			}
 		}
 
-		levelStr, ok := args[1].(*tengo.String)
-		if !ok {
-			return nil, tengo.ErrInvalidArgumentType{
-				Name:     "level",
-				Expected: "string",
-				Found:    args[1].TypeName(),
-			}
-		}
-		level, ok := parseLevel(levelStr.Value)
-		if !ok {
-			level = defaultLevel
-		}
-
 		hk, err := newHook(url.Value)
 		if err != nil {
 			return nil, err
 		}
 
+		level := internal.LevelTrace
 		attrs := make([]internal.Attr, 0)
+
 		if len(args) > 1 {
-			for _, arg := range args[2:] {
-				if attr, ok := arg.(*traceField); ok {
-					attrs = append(attrs, attr.Value)
+			levelStr, ok := args[1].(*tengo.String)
+			if !ok {
+				return nil, tengo.ErrInvalidArgumentType{
+					Name:     "level",
+					Expected: "string",
+					Found:    args[1].TypeName(),
+				}
+			}
+			level, ok = parseLevel(levelStr.Value)
+			if !ok {
+				level = internal.LevelTrace
+			}
+
+			if len(args) > 2 {
+				for _, arg := range args[3:] {
+					if attr, ok := arg.(*traceField); ok {
+						attrs = append(attrs, attr.Value)
+					}
 				}
 			}
 		}

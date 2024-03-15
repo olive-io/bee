@@ -41,10 +41,12 @@ type Level int
 //
 // Names for common levels.
 const (
+	LevelTrace Level = -8
 	LevelDebug Level = -4
 	LevelInfo  Level = 0
 	LevelWarn  Level = 4
 	LevelError Level = 8
+	LevelPrint Level = 12
 )
 
 // String returns a name for the level.
@@ -65,14 +67,18 @@ func (l Level) String() string {
 	}
 
 	switch {
+	case l < LevelDebug:
+		return str("TRACE", l-LevelTrace)
 	case l < LevelInfo:
 		return str("DEBUG", l-LevelDebug)
 	case l < LevelWarn:
 		return str("INFO", l-LevelInfo)
 	case l < LevelError:
 		return str("WARN", l-LevelWarn)
-	default:
+	case l < LevelPrint:
 		return str("ERROR", l-LevelError)
+	default:
+		return str("PRINT", l-LevelPrint)
 	}
 }
 
@@ -130,6 +136,8 @@ func (l *Level) parse(s string) (err error) {
 		}
 	}
 	switch strings.ToUpper(name) {
+	case "TRACE":
+		*l = LevelTrace
 	case "DEBUG":
 		*l = LevelDebug
 	case "INFO":
@@ -138,6 +146,8 @@ func (l *Level) parse(s string) (err error) {
 		*l = LevelWarn
 	case "ERROR":
 		*l = LevelError
+	case "PRINT":
+		*l = LevelPrint
 	default:
 		return errors.New("unknown name")
 	}

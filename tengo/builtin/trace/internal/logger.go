@@ -157,6 +157,16 @@ func (l *Logger) LogAttrs(ctx context.Context, level Level, msg string, attrs ..
 	l.logAttrs(ctx, level, msg, attrs...)
 }
 
+// Trace logs at LevelTrace.
+func (l *Logger) Trace(msg string, args ...any) {
+	l.log(context.Background(), LevelDebug, msg, args...)
+}
+
+// TraceContext logs at LevelTrace with the given context.
+func (l *Logger) TraceContext(ctx context.Context, msg string, args ...any) {
+	l.log(ctx, LevelTrace, msg, args...)
+}
+
 // Debug logs at LevelDebug.
 func (l *Logger) Debug(msg string, args ...any) {
 	l.log(context.Background(), LevelDebug, msg, args...)
@@ -197,6 +207,16 @@ func (l *Logger) ErrorContext(ctx context.Context, msg string, args ...any) {
 	l.log(ctx, LevelError, msg, args...)
 }
 
+// Print logs at LevelPrint.
+func (l *Logger) Print(msg string, args ...any) {
+	l.log(context.Background(), LevelDebug, msg, args...)
+}
+
+// PrintContext logs at LevelPrint with the given context.
+func (l *Logger) PrintContext(ctx context.Context, msg string, args ...any) {
+	l.log(ctx, LevelDebug, msg, args...)
+}
+
 // log is the low-level logging method for methods that take ...any.
 // It must always be called directly by an exported logging method
 // or function, because it uses a fixed call depth to obtain the pc.
@@ -233,6 +253,16 @@ func (l *Logger) logAttrs(ctx context.Context, level Level, msg string, attrs ..
 		ctx = context.Background()
 	}
 	_ = l.Handler().Handle(ctx, r)
+}
+
+// Trace calls Logger.Trace on the default logger.
+func Trace(msg string, args ...any) {
+	Default().log(context.Background(), LevelTrace, msg, args...)
+}
+
+// TraceContext calls Logger.TraceContext on the default logger.
+func TraceContext(ctx context.Context, msg string, args ...any) {
+	Default().log(ctx, LevelTrace, msg, args...)
 }
 
 // Debug calls Logger.Debug on the default logger.
@@ -273,6 +303,16 @@ func Error(msg string, args ...any) {
 // ErrorContext calls Logger.ErrorContext on the default logger.
 func ErrorContext(ctx context.Context, msg string, args ...any) {
 	Default().log(ctx, LevelError, msg, args...)
+}
+
+// Print calls Logger.Print on the default logger.
+func Print(msg string, args ...any) {
+	Default().log(context.Background(), LevelPrint, msg, args...)
+}
+
+// PrintContext calls Logger.PrintContext on the default logger.
+func PrintContext(ctx context.Context, msg string, args ...any) {
+	Default().log(ctx, LevelPrint, msg, args...)
 }
 
 // Log calls Logger.Log on the default logger.

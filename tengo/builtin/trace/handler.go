@@ -16,6 +16,7 @@ package trace
 
 import (
 	"context"
+	"io"
 	"os"
 	"sync"
 
@@ -118,8 +119,8 @@ func (h *traceHandler) setLevel(level internal.Level) {
 func (m *ImportModule) AddHandler() tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		numArgs := len(args)
-		if numArgs < 2 {
-			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "must greater than 1")
+		if numArgs == 0 {
+			return nil, errors.Wrap(tengo.ErrWrongNumArguments, "missing args")
 		}
 
 		out, ok := args[0].(*tengo.String)
@@ -131,29 +132,41 @@ func (m *ImportModule) AddHandler() tengo.CallableFunc {
 			}
 		}
 
-		writer, err := os.OpenFile(out.Value, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0755)
-		if err != nil {
-			return nil, err
-		}
-
-		levelStr, ok := args[1].(*tengo.String)
-		if !ok {
-			return nil, tengo.ErrInvalidArgumentType{
-				Name:     "level",
-				Expected: "string",
-				Found:    args[1].TypeName(),
+		var writer io.Writer
+		var err error
+		switch out.Value {
+		case "/dev/stdout", "stdout":
+			writer = os.Stdout
+		case "/dev/stderr", "stderr":
+			writer = os.Stderr
+		default:
+			writer, err = os.OpenFile(out.Value, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0755)
+			if err != nil {
+				return nil, err
 			}
-		}
-		level, ok := parseLevel(levelStr.Value)
-		if !ok {
-			level = defaultLevel
 		}
 
 		attrs := make([]internal.Attr, 0)
-		if len(args) > 2 {
-			for _, arg := range args[2:] {
-				if attr, ok := arg.(*traceField); ok {
-					attrs = append(attrs, attr.Value)
+		level := internal.LevelDebug
+		if len(args) > 1 {
+			levelStr, ok := args[1].(*tengo.String)
+			if !ok {
+				return nil, tengo.ErrInvalidArgumentType{
+					Name:     "level",
+					Expected: "string",
+					Found:    args[1].TypeName(),
+				}
+			}
+			level, ok = parseLevel(levelStr.Value)
+			if !ok {
+				level = internal.LevelDebug
+			}
+
+			if len(args) > 2 {
+				for _, arg := range args[2:] {
+					if attr, ok := arg.(*traceField); ok {
+						attrs = append(attrs, attr.Value)
+					}
 				}
 			}
 		}
