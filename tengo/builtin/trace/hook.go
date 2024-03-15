@@ -116,7 +116,7 @@ func (m *ImportModule) AddHook() tengo.CallableFunc {
 			}
 
 			if len(args) > 2 {
-				for _, arg := range args[3:] {
+				for _, arg := range args[2:] {
 					if attr, ok := arg.(*traceField); ok {
 						attrs = append(attrs, attr.Value)
 					}
