@@ -19,6 +19,7 @@ import (
 	"os/exec"
 
 	"github.com/d5/tengo/v2"
+	"github.com/olive-io/bee/tengo/extra"
 )
 
 var (
@@ -90,27 +91,27 @@ func makeOSExecCommand(cmd *exec.Cmd) *tengo.ImmutableMap {
 			// combined_output() => bytes/error
 			"combined_output": &tengo.UserFunction{
 				Name:  "combined_output",
-				Value: FuncARYE(cmd.CombinedOutput),
+				Value: extra.FuncBYTEE(cmd.CombinedOutput),
 			},
 			// output() => bytes/error
 			"output": &tengo.UserFunction{
 				Name:  "output",
-				Value: FuncARYE(cmd.Output),
+				Value: extra.FuncBYTEE(cmd.Output),
 			}, //
 			// run() => error
 			"run": &tengo.UserFunction{
 				Name:  "run",
-				Value: FuncARE(cmd.Run),
+				Value: extra.FuncARE(cmd.Run),
 			}, //
 			// start() => error
 			"start": &tengo.UserFunction{
 				Name:  "start",
-				Value: FuncARE(cmd.Start),
+				Value: extra.FuncARE(cmd.Start),
 			}, //
 			// wait() => error
 			"wait": &tengo.UserFunction{
 				Name:  "wait",
-				Value: FuncARE(cmd.Wait),
+				Value: extra.FuncARE(cmd.Wait),
 			}, //
 			// set_path(path string)
 			"set_path": &tengo.UserFunction{
@@ -186,45 +187,6 @@ func makeOSExecCommand(cmd *exec.Cmd) *tengo.ImmutableMap {
 	}
 }
 
-// FuncARE transform a function of 'func() error' signature into CallableFunc
-// type.
-func FuncARE(fn func() error) tengo.CallableFunc {
-	return func(args ...tengo.Object) (ret tengo.Object, err error) {
-		if len(args) != 0 {
-			return nil, tengo.ErrWrongNumArguments
-		}
-		return wrapError(fn()), nil
-	}
-}
-
-// FuncARYE transform a function of 'func() ([]byte, error)' signature into
-// CallableFunc type.
-func FuncARYE(fn func() ([]byte, error)) tengo.CallableFunc {
-	return func(args ...tengo.Object) (ret tengo.Object, err error) {
-		if len(args) != 0 {
-			return nil, tengo.ErrWrongNumArguments
-		}
-		res, err := fn()
-		if err != nil {
-			if len(res) == 0 {
-				res = []byte(err.Error())
-			}
-			return wrapResError(err, res), nil
-		}
-		if len(res) > tengo.MaxBytesLen {
-			return nil, tengo.ErrBytesLimit
-		}
-		return &tengo.Bytes{Value: res}, nil
-	}
-}
-
-func wrapError(err error) tengo.Object {
-	if err == nil {
-		return tengo.TrueValue
-	}
-	return &tengo.Error{Value: &tengo.String{Value: err.Error()}}
-}
-
 func stringArray(arr []tengo.Object, argName string) ([]string, error) {
 	var sarr []string
 	for idx, elem := range arr {
@@ -239,11 +201,4 @@ func stringArray(arr []tengo.Object, argName string) ([]string, error) {
 		sarr = append(sarr, str.Value)
 	}
 	return sarr, nil
-}
-
-func wrapResError(err error, output []byte) tengo.Object {
-	if err == nil {
-		return tengo.TrueValue
-	}
-	return &tengo.Error{Value: &tengo.Bytes{Value: output}}
 }

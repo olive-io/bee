@@ -12,21 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package builtin
+package extra
 
 import (
 	"github.com/d5/tengo/v2"
-	"github.com/olive-io/bee/tengo/builtin/exec"
-	"github.com/olive-io/bee/tengo/builtin/filepath"
-	"github.com/olive-io/bee/tengo/builtin/flag"
-	"github.com/olive-io/bee/tengo/builtin/trace"
 )
 
-var BuiltinMap = tengo.NewModuleMap()
+type BoolP struct {
+	tengo.ObjectImpl
 
-func init() {
-	BuiltinMap.Add("filepath", filepath.Importable)
-	BuiltinMap.Add("flag", flag.Importable)
-	BuiltinMap.Add("trace", trace.Importable)
-	BuiltinMap.Add("exec", exec.Importable)
+	Value bool
+}
+
+func (b *BoolP) TypeName() string {
+	return "bool"
+}
+
+func (b *BoolP) Copy() tengo.Object {
+	return &BoolP{Value: b.Value}
+}
+
+func (b *BoolP) String() string {
+	if b.Value {
+		return "true"
+	}
+	return "false"
+}
+
+func (b *BoolP) Set(text string) error {
+	if text == "true" || text == "1" {
+		b.Value = true
+	} else {
+		b.Value = false
+	}
+	return nil
+}
+
+func (b *BoolP) Type() string {
+	return "bool"
 }

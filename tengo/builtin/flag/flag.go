@@ -22,6 +22,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/d5/tengo/v2"
+	"github.com/olive-io/bee/tengo/extra"
 	"github.com/spf13/pflag"
 )
 
@@ -388,7 +389,7 @@ func (f *ImportFlag) Bool() tengo.CallableFunc {
 			}
 		}
 
-		p := &BoolP{Value: !value.IsFalsy()}
+		p := &extra.BoolP{Value: !value.IsFalsy()}
 		f.fs.Var(p, name.Value, usage.Value)
 		return p, nil
 	}
@@ -573,7 +574,7 @@ func (f *ImportFlag) GetBool() tengo.CallableFunc {
 		if pf == nil {
 			return nil, errors.Wrapf(ErrUndefined, "'%s'", name.Value)
 		}
-		p, ok := pf.Value.(*BoolP)
+		p, ok := pf.Value.(*extra.BoolP)
 		if !ok {
 			return nil, errors.Wrapf(ErrFlagType, "actual %s", pf.Value.Type())
 		}
@@ -666,38 +667,4 @@ func (s *StringSlice) Set(text string) error {
 
 func (s *StringSlice) Type() string {
 	return "[]string"
-}
-
-type BoolP struct {
-	tengo.ObjectImpl
-
-	Value bool
-}
-
-func (b *BoolP) TypeName() string {
-	return "bool"
-}
-
-func (b *BoolP) Copy() tengo.Object {
-	return &BoolP{Value: b.Value}
-}
-
-func (b *BoolP) String() string {
-	if b.Value {
-		return "true"
-	}
-	return "false"
-}
-
-func (b *BoolP) Set(text string) error {
-	if text == "true" || text == "1" {
-		b.Value = true
-	} else {
-		b.Value = false
-	}
-	return nil
-}
-
-func (b *BoolP) Type() string {
-	return "bool"
 }

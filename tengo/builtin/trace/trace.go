@@ -464,17 +464,24 @@ func (m *ImportModule) Try() tengo.CallableFunc {
 		}
 
 		attrs := make([]any, 0)
-
 		s := fmt.Sprintf("%v", tErr.Value.String())
 		attrs = append(attrs, internal.String("error", unquote(s)))
 
-		for _, arg := range args {
-			if field, ok := arg.(*traceField); ok {
-				attrs = append(attrs, field.Value)
+		msg := "occurred error"
+		if len(args) > 1 {
+			value, ok := args[1].(*tengo.String)
+			if ok {
+				msg = unquote(value.Value)
+			}
+
+			for _, arg := range args[1:] {
+				if field, ok := arg.(*traceField); ok {
+					attrs = append(attrs, field.Value)
+				}
 			}
 		}
 
-		m.lg.Log(context.TODO(), internal.LevelPrint, "occurred error", attrs...)
+		m.lg.Log(context.TODO(), internal.LevelPrint, msg, attrs...)
 		os.Exit(1)
 		return tengo.UndefinedValue, nil
 	}
@@ -493,19 +500,27 @@ func (m *ImportModule) Assert() tengo.CallableFunc {
 			return tengo.UndefinedValue, nil
 		}
 
-		text := fmt.Sprintf(`assert: got %v, expected %v`, a.String(), b.String())
+		text := fmt.Sprintf(`got %v, expected %v`, a.String(), b.String())
 		attr := internal.String("error", text)
 
 		attrs := make([]any, 0)
 		attrs = append(attrs, attr)
 
-		for _, arg := range args {
-			if field, ok := arg.(*traceField); ok {
-				attrs = append(attrs, field.Value)
+		msg := "assert error"
+		if len(args) > 2 {
+			value, ok := args[2].(*tengo.String)
+			if ok {
+				msg = unquote(value.Value)
+			}
+
+			for _, arg := range args[2:] {
+				if field, ok := arg.(*traceField); ok {
+					attrs = append(attrs, field.Value)
+				}
 			}
 		}
 
-		m.lg.Log(context.TODO(), internal.LevelPrint, "assert error", attrs...)
+		m.lg.Log(context.TODO(), internal.LevelPrint, msg, attrs...)
 		os.Exit(1)
 
 		return tengo.UndefinedValue, nil
