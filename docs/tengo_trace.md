@@ -16,7 +16,7 @@ flag := import("flag")
 - `debug(args ...Object)`: 输出 debug 级别日志。
 - `info(args ...Object)`: 输出 info 级别日志。
 - `warn(args ...Object)`: 输出 warn 级别日志。
-- `error(args ...Object)`: 输出 error 级别日志。
+- `errorf(args ...Object)`: 输出 error 级别日志。
 - `set_level(level string) => error`: 设置日志级别，默认为 info。
 - `fields(args ...trace.Field) => trace/error`: 添加 fields 输出，支持链式操作 trace.fields(fields).info()。
 - `int(name string, value int) => trace.Field/error`: 返回 int 类型的 Field.

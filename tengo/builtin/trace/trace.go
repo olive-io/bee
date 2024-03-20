@@ -75,7 +75,7 @@ func NewTrace() *ImportModule {
 	attrs["debug"] = &tengo.UserFunction{Name: "debug", Value: tm.Debug()}
 	attrs["info"] = &tengo.UserFunction{Name: "info", Value: tm.Info()}
 	attrs["warn"] = &tengo.UserFunction{Name: "warn", Value: tm.Warn()}
-	attrs["error"] = &tengo.UserFunction{Name: "error", Value: tm.Error()}
+	attrs["errorf"] = &tengo.UserFunction{Name: "errorf", Value: tm.Error()}
 	attrs["print"] = &tengo.UserFunction{Name: "print", Value: tm.Print()}
 	attrs["try"] = &tengo.UserFunction{Name: "try", Value: tm.Try()}
 	attrs["assert"] = &tengo.UserFunction{Name: "assert", Value: tm.Assert()}
