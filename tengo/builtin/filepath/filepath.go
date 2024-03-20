@@ -34,6 +34,7 @@ func NewFP() *ImportFP {
 	attrs := map[string]tengo.Object{
 		"separator":      &tengo.String{Value: string(filepath.Separator)},
 		"list_separator": &tengo.String{Value: string(filepath.ListSeparator)},
+		"line_separator": &tengo.String{Value: LineSeparator},
 		"clean": &tengo.UserFunction{
 			Name:  "clean",
 			Value: clean,
