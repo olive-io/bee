@@ -23,7 +23,8 @@ import (
 
 const (
 	DefaultCacheSize   = 1024 * 1024
-	DefaultDialTimeout = time.Second * 15
+	DefaultDialTimeout = time.Minute * 3
+	DefaultExecTimeout = time.Minute * 10
 )
 
 const (
@@ -162,12 +163,14 @@ type ExecOptions struct {
 	Root         string
 	Args         []string
 	Environments map[string]string
+	Timeout      time.Duration
 }
 
 func NewExecOptions() *ExecOptions {
 	opt := &ExecOptions{
 		Context:      context.TODO(),
 		Environments: map[string]string{},
+		Timeout:      DefaultExecTimeout,
 	}
 	return opt
 }
@@ -192,6 +195,12 @@ func ExecWithEnv(key, value string) ExecOption {
 			options.Environments = map[string]string{}
 		}
 		options.Environments[key] = value
+	}
+}
+
+func ExecWithTimeout(timeout time.Duration) ExecOption {
+	return func(options *ExecOptions) {
+		options.Timeout = timeout
 	}
 }
 
