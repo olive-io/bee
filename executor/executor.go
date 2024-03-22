@@ -120,10 +120,10 @@ func (e *Executor) RemoveClient(name string) (bool, error) {
 		return false, nil
 	}
 
-	err := conn.Close()
 	e.cmu.Lock()
 	defer e.cmu.Unlock()
 	delete(e.clients, name)
+	err := conn.Close()
 	return ok, err
 }
 

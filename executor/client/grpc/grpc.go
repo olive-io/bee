@@ -75,8 +75,8 @@ func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, error) {
 	defer cancel()
 
 	ckp := keepalive.ClientParameters{
-		Time:                5 * time.Minute,
-		Timeout:             1 * time.Minute,
+		Time:                10 * time.Second,
+		Timeout:             5 * time.Second,
 		PermitWithoutStream: true,
 	}
 

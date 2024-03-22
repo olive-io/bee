@@ -133,7 +133,17 @@ func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunO
 					err = fmt.Errorf("%v at %s:%d", re, file, line)
 				}
 			}()
-			return rt.run(ctx, host, shell, opts...)
+			conn, err := rt.executor.GetClient(host)
+			if err != nil {
+				return nil, err
+			}
+
+			data, err = rt.run(ctx, conn, host, shell, opts...)
+			_, e1 := rt.executor.RemoveClient(host)
+			if e1 != nil {
+				rt.Logger().Sugar().Warnf("closing connection: %v", e1)
+			}
+			return data, err
 		}
 
 		data, err := call()
@@ -156,7 +166,7 @@ func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunO
 	}
 }
 
-func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOption) ([]byte, error) {
+func (rt *Runtime) run(ctx context.Context, conn client.IClient, host, shell string, opts ...RunOption) ([]byte, error) {
 	lg := rt.Logger()
 	options := newRunOptions()
 	for _, opt := range opts {
@@ -186,12 +196,6 @@ func (rt *Runtime) run(ctx context.Context, host, shell string, opts ...RunOptio
 	if !cmd.Runnable() {
 		return nil, errors.New("command can't be execute")
 	}
-
-	conn, err := rt.executor.GetClient(host)
-	if err != nil {
-		return nil, err
-	}
-	defer rt.executor.RemoveClient(host)
 
 	sm := rt.applyStableMap(host)
 	if options.sync {
