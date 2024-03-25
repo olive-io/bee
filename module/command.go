@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/olive-io/bee/executor/client"
 	"github.com/olive-io/bee/vars"
@@ -208,8 +209,9 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	}
 
 	shell := fmt.Sprintf("%s -import %s %s %s", repl, resolve, script, strings.Join(args, " "))
-	lg.Debug("remote execute", zap.String("command", shell))
+	start := time.Now()
 	cmd, err := conn.Execute(ctx, repl, options...)
+	lg.Debug("remote execute", zap.String("command", shell), zap.Duration("took", time.Now().Sub(start)))
 	if err != nil {
 		return nil, err
 	}

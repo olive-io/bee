@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble"
@@ -282,14 +283,17 @@ func (rt *Runtime) syncRepl(ctx context.Context, conn client.IClient, sm *module
 		return err
 	}
 
+	start := time.Now()
+	err = conn.Put(ctx, toolchain, repl, client.PutWithMkdir(true))
 	lg.Debug("upload toolchain",
 		zap.String("repl", "tengo"),
 		zap.String("platform", goos),
 		zap.String("arch", arch),
 		zap.String("remote", repl),
+		zap.Duration("took", time.Now().Sub(start)),
 	)
 
-	return conn.Put(ctx, toolchain, repl, client.PutWithMkdir(true))
+	return err
 }
 
 func (rt *Runtime) syncDepModules(ctx context.Context, conn client.IClient, sm *module.StableMap) error {
@@ -313,11 +317,15 @@ func (rt *Runtime) syncDepModules(ctx context.Context, conn client.IClient, sm *
 		if rs != nil {
 			continue
 		}
+		start := time.Now()
+		err := conn.Put(ctx, localDir, remoteDir, client.PutWithDir(true))
+
 		lg.Debug("put bee module",
 			zap.String("name", item.Name),
 			zap.String("local", localDir),
-			zap.String("remote", remoteDir))
-		err := conn.Put(ctx, localDir, remoteDir, client.PutWithDir(true))
+			zap.String("remote", remoteDir),
+			zap.Duration("took", time.Now().Sub(start)))
+
 		if err != nil {
 			return err
 		}
@@ -363,11 +371,15 @@ func (rt *Runtime) syncModule(ctx context.Context, conn client.IClient, bm *modu
 	}
 
 	if toSync {
+		start := time.Now()
+		err := conn.Put(ctx, localDir, remoteDir, client.PutWithDir(true))
+
 		lg.Debug("put bee module",
 			zap.String("name", bm.Name),
 			zap.String("local", localDir),
-			zap.String("remote", remoteDir))
-		err := conn.Put(ctx, localDir, remoteDir, client.PutWithDir(true))
+			zap.String("remote", remoteDir),
+			zap.Duration("took", time.Now().Sub(start)))
+
 		if err != nil {
 			return err
 		}
