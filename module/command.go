@@ -211,11 +211,11 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 	shell := fmt.Sprintf("%s -import %s %s %s", repl, resolve, script, strings.Join(args, " "))
 	start := time.Now()
 	cmd, err := conn.Execute(ctx, repl, options...)
-	lg.Debug("remote execute", zap.String("command", shell), zap.Duration("took", time.Now().Sub(start)))
 	if err != nil {
 		return nil, err
 	}
 	data, err := cmd.CombinedOutput()
+	lg.Debug("remote execute", zap.String("command", shell), zap.Duration("took", time.Now().Sub(start)))
 	if err != nil {
 		return nil, &CommandErr{Err: err, Stderr: beautify(data)}
 	}

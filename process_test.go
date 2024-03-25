@@ -129,14 +129,14 @@ func TestRuntime_PlayWithService(t *testing.T) {
 }
 
 func TestRuntime_PlayWithTracer(t *testing.T) {
-	sources := []string{"host1"}
+	sources := []string{"host1", "localhost"}
 	rt, inventory, cancel := newRuntime(t)
 	defer cancel()
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
 	tracer := make(chan tracing.ITrace, 10)
-	options = append(options, bee.WithRunTracer(tracer))
+	options = append(options, bee.WithRunTracer(tracer), bee.WithRunSync(false))
 	inventory.AddSources(sources...)
 
 	pr := &process.Process{
@@ -148,6 +148,8 @@ func TestRuntime_PlayWithTracer(t *testing.T) {
 				Name:   "first task",
 				Id:     "t1",
 				Action: "ping",
+				Hosts:  []string{"localhost"},
+				Args:   map[string]any{"data": "timeout"},
 			},
 		},
 	}

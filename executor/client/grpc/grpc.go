@@ -26,13 +26,11 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
-
 	pb "github.com/olive-io/bee/api/rpc"
 	"github.com/olive-io/bee/api/rpctype"
 	"github.com/olive-io/bee/executor/client"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -74,16 +72,16 @@ func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
 
-	ckp := keepalive.ClientParameters{
-		Time:                10 * time.Second,
-		Timeout:             5 * time.Second,
-		PermitWithoutStream: true,
-	}
-
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithKeepaliveParams(ckp),
 	}
+
+	//ckp := keepalive.ClientParameters{
+	//	Time:                10 * time.Second,
+	//	Timeout:             20 * time.Second,
+	//	PermitWithoutStream: true,
+	//}
+	//opts = append(opts, grpc.WithKeepaliveParams(ckp))
 
 	conn, err := grpc.DialContext(ctx, cfg.Address, opts...)
 	if err != nil {
