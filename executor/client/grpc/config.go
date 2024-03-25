@@ -18,17 +18,13 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-
 	"github.com/olive-io/bee/executor/client"
+	"go.uber.org/zap"
 )
 
 type Config struct {
 	Address string
 	Timeout time.Duration
-
-	conn *grpc.ClientConn
 
 	lg *zap.Logger
 }

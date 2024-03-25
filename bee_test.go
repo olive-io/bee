@@ -46,7 +46,7 @@ func startGRPCServer(t *testing.T) {
 	addr := fmt.Sprintf("localhost:%d", port)
 
 	ep := keepalive.EnforcementPolicy{
-		MinTime:             time.Hour * 2,
+		MinTime:             time.Second * 30,
 		PermitWithoutStream: true,
 	}
 
@@ -54,8 +54,8 @@ func startGRPCServer(t *testing.T) {
 		//MaxConnectionIdle:     30 * time.Second,
 		//MaxConnectionAge:      45 * time.Second,
 		//MaxConnectionAgeGrace: 15 * time.Second,
-		Time:    15 * time.Second,
-		Timeout: 5 * time.Second,
+		Time:    2 * time.Hour,
+		Timeout: 20 * time.Second,
 	}
 
 	impl := bs.NewServer()

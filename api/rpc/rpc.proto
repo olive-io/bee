@@ -80,6 +80,12 @@ message ExecuteRequest {
 }
 
 message ExecuteResponse {
-  bytes stdout = 1;
-  bytes stderr = 2;
+  enum MessageKind {
+    Unknown = 0;
+    Ping = 1;
+    Data = 2;
+  }
+  MessageKind kind = 1;
+  bytes stdout = 2;
+  bytes stderr = 3;
 }

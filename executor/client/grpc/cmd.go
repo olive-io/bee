@@ -190,15 +190,19 @@ func (c *Cmd) Start() error {
 	})
 
 	c.goroutine(func() {
+	LOOP:
 		for {
 			select {
 			case <-c.stopping:
-				return
+				break LOOP
 			default:
 			}
 
 			rsp, e1 := c.s.Recv()
 			if rsp != nil {
+				if rsp.Kind == pb.ExecuteResponse_Ping {
+					continue
+				}
 				if rsp.Stdout != nil {
 					c.stdout.Write(rsp.Stdout)
 				}
@@ -211,7 +215,7 @@ func (c *Cmd) Start() error {
 				if e1 != io.EOF {
 					c.ech <- e1
 				}
-				break
+				break LOOP
 			}
 		}
 

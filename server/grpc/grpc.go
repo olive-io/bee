@@ -21,6 +21,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"google.golang.org/grpc"
@@ -227,8 +228,22 @@ func (s *Server) Execute(stream pb.RemoteRPC_ExecuteServer) error {
 		return rpctype.ToGRPCErr(err)
 	}
 
+	go func() {
+		timer := time.NewTicker(time.Second * 5)
+		defer timer.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-timer.C:
+			}
+
+			_ = stream.Send(&pb.ExecuteResponse{Kind: pb.ExecuteResponse_Ping})
+		}
+	}()
+
 	if err = cmd.Wait(); err != nil {
-		return rpctype.ToGRPCErr(cmd.Wait())
+		return rpctype.ToGRPCErr(err)
 	}
 
 	return nil
@@ -251,7 +266,7 @@ type execStdout struct {
 }
 
 func (s *execStdout) Write(data []byte) (int, error) {
-	rsp := &pb.ExecuteResponse{Stdout: data}
+	rsp := &pb.ExecuteResponse{Kind: pb.ExecuteResponse_Data, Stdout: data}
 	if err := s.s.Send(rsp); err != nil {
 		return 0, rpctype.ToGRPCErr(err)
 	}
@@ -263,7 +278,7 @@ type execStderr struct {
 }
 
 func (s *execStderr) Write(data []byte) (int, error) {
-	rsp := &pb.ExecuteResponse{Stderr: data}
+	rsp := &pb.ExecuteResponse{Kind: pb.ExecuteResponse_Data, Stderr: data}
 	if err := s.s.Send(rsp); err != nil {
 		return 0, rpctype.ToGRPCErr(err)
 	}

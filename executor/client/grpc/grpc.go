@@ -23,6 +23,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -35,12 +36,20 @@ import (
 
 const (
 	DefaultGRPCPort = 15450
+	DefaultPoolSize = 10
+	DefaultPoolTTL  = time.Minute
+	// DefaultPoolMaxStreams maximum streams on a connections (20)
+	DefaultPoolMaxStreams = 20
+
+	// DefaultPoolMaxIdle maximum idle conns of a pool (50)
+	DefaultPoolMaxIdle = 50
 )
 
 type Client struct {
-	cfg  Config
-	cc   pb.RemoteRPCClient
-	conn *grpc.ClientConn
+	cfg Config
+
+	pool *pool
+	once atomic.Value
 }
 
 func NewClient(cfg Config) (*Client, error) {
@@ -53,21 +62,13 @@ func NewClient(cfg Config) (*Client, error) {
 		cfg: cfg,
 	}
 
-	conn := cfg.conn
-	if conn == nil {
-		ctx := context.Background()
-		conn, err = c.dial(ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-	c.conn = conn
-	c.cc = pb.NewRemoteRPCClient(conn)
+	c.once.Store(false)
+	c.pool = newPool(DefaultPoolSize, DefaultPoolTTL, DefaultPoolMaxIdle, DefaultPoolMaxStreams)
 
 	return c, nil
 }
 
-func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, error) {
+func (c *Client) newConn(ctx context.Context) (pb.RemoteRPCClient, func(err error), error) {
 	cfg := c.cfg
 	ctx, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
@@ -83,11 +84,15 @@ func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, error) {
 	//}
 	//opts = append(opts, grpc.WithKeepaliveParams(ckp))
 
-	conn, err := grpc.DialContext(ctx, cfg.Address, opts...)
+	conn, err := c.pool.getConn(cfg.Address, opts...)
 	if err != nil {
-		return nil, err
+		return nil, func(err error) {}, err
 	}
-	return conn, nil
+	release := func(err error) {
+		c.pool.release(cfg.Address, conn, err)
+	}
+
+	return pb.NewRemoteRPCClient(conn.ClientConn), release, nil
 }
 
 func (c *Client) callOptions() []grpc.CallOption {
@@ -95,10 +100,18 @@ func (c *Client) callOptions() []grpc.CallOption {
 	return options
 }
 
-func (c *Client) stat(ctx context.Context, name string) (*pb.FileStat, error) {
+func (c *Client) stat(ctx context.Context, name string) (stat *pb.FileStat, err error) {
 	copts := c.callOptions()
 	in := &pb.StatRequest{Name: name}
-	rsp, err := c.cc.Stat(ctx, in, copts...)
+
+	cc, release, err := c.newConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release(err)
+
+	var rsp *pb.StatResponse
+	rsp, err = cc.Stat(ctx, in, copts...)
 	if err != nil {
 		return nil, rpctype.ParseGRPCErr(err)
 	}
@@ -124,18 +137,25 @@ func (c *Client) Stat(ctx context.Context, name string) (*client.Stat, error) {
 	return stat, nil
 }
 
-func (c *Client) ReadFile(ctx context.Context, name string) ([]byte, error) {
-	_, err := c.stat(ctx, name)
+func (c *Client) ReadFile(ctx context.Context, name string) (data []byte, err error) {
+	_, err = c.stat(ctx, name)
 	if err != nil {
 		return nil, err
 	}
+
+	cc, release, err := c.newConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release(err)
 
 	in := &pb.GetRequest{
 		Name:      name,
 		CacheSize: client.DefaultCacheSize,
 	}
 	copts := c.callOptions()
-	rc, err := c.cc.Get(ctx, in, copts...)
+	var rc pb.RemoteRPC_GetClient
+	rc, err = cc.Get(ctx, in, copts...)
 	if err != nil {
 		return nil, rpctype.ParseGRPCErr(err)
 	}
@@ -161,7 +181,7 @@ func (c *Client) ReadFile(ctx context.Context, name string) ([]byte, error) {
 	return w.Bytes(), nil
 }
 
-func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) error {
+func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOption) (err error) {
 	options := client.NewGetOptions()
 	for _, opt := range opts {
 		opt(options)
@@ -179,12 +199,18 @@ func (c *Client) Get(ctx context.Context, src, dst string, opts ...client.GetOpt
 		}
 	}
 
+	cc, release, err := c.newConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer release(err)
+
 	in := &pb.GetRequest{
 		Name:      src,
 		CacheSize: options.CacheSize,
 	}
 	copts := c.callOptions()
-	rc, err := c.cc.Get(ctx, in, copts...)
+	rc, err := cc.Get(ctx, in, copts...)
 	if err != nil {
 		return rpctype.ParseGRPCErr(err)
 	}
@@ -268,7 +294,7 @@ func (c *Client) save(rsp *pb.GetResponse, fw *os.File, dst string, fn client.IO
 	return nil
 }
 
-func (c *Client) Put(ctx context.Context, src, dst string, opts ...client.PutOption) error {
+func (c *Client) Put(ctx context.Context, src, dst string, opts ...client.PutOption) (err error) {
 	options := client.NewPutOptions()
 	for _, opt := range opts {
 		opt(options)
@@ -288,7 +314,13 @@ func (c *Client) Put(ctx context.Context, src, dst string, opts ...client.PutOpt
 		return errors.Wrapf(os.ErrInvalid, "not a regular file")
 	}
 
-	stream, err := c.cc.Put(ctx, c.callOptions()...)
+	cc, release, err := c.newConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer release(err)
+
+	stream, err := cc.Put(ctx, c.callOptions()...)
 	if err != nil {
 		return rpctype.ParseGRPCErr(err)
 	}
@@ -407,14 +439,24 @@ func (c *Client) Execute(ctx context.Context, shell string, opts ...client.ExecO
 		opt(options)
 	}
 
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithCancel(ctx)
+	cc, release, err := c.newConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		select {
+		case <-ctx.Done():
+			release(nil)
+		}
+	}()
+
+	cctx, cancel := context.WithCancel(ctx)
 	cmd := &Cmd{
 		lg:       c.cfg.lg,
-		ctx:      ctx,
+		ctx:      cctx,
 		cancel:   cancel,
 		options:  c.callOptions(),
-		cc:       c.cc,
+		cc:       cc,
 		name:     shell,
 		root:     options.Root,
 		args:     options.Args,
@@ -429,5 +471,5 @@ func (c *Client) Execute(ctx context.Context, shell string, opts ...client.ExecO
 }
 
 func (c *Client) Close() error {
-	return c.conn.Close()
+	return nil
 }
