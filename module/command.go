@@ -21,11 +21,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/olive-io/bee/executor/client"
-	"github.com/olive-io/bee/vars"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
+
+	"github.com/olive-io/bee/executor/client"
+	"github.com/olive-io/bee/vars"
 )
 
 const (
@@ -78,21 +79,21 @@ type RunContext struct {
 type RunE func(ctx *RunContext, options ...client.ExecOption) ([]byte, error)
 
 type Command struct {
-	Name     string         `yaml:"name"`
-	Long     string         `yaml:"long"`
-	Script   string         `yaml:"script"`
-	Authors  []string       `yaml:"authors"`
-	Version  string         `yaml:"version"`
-	Example  string         `yaml:"example"`
-	Params   []*Schema      `yaml:"params"`
-	Returns  []*Schema      `yaml:"returns"`
-	Commands []*Command     `yaml:"commands"`
-	Root     string         `yaml:"root"`
+	Name     string         `json:"name" yaml:"name"`
+	Long     string         `json:"long" yaml:"long"`
+	Script   string         `json:"script" yaml:"script"`
+	Authors  []string       `json:"authors" yaml:"authors"`
+	Version  string         `json:"version" yaml:"version"`
+	Example  string         `json:"example" yaml:"example"`
+	Params   []*Schema      `json:"params" yaml:"params"`
+	Returns  []*Schema      `json:"returns" yaml:"returns"`
+	Commands []*Command     `json:"commands" yaml:"commands"`
+	Root     string         `json:"root" yaml:"root"`
 	cobra    *cobra.Command `yaml:"-"`
 
-	PreRun  RunE `yaml:"-"`
-	Run     RunE `yaml:"-"`
-	PostRun RunE `yaml:"-"`
+	PreRun  RunE `json:"-" yaml:"-"`
+	Run     RunE `json:"-" yaml:"-"`
+	PostRun RunE `json:"-" yaml:"-"`
 }
 
 func (c *Command) NewContext(ctx context.Context, lg *zap.Logger, conn client.IClient, variables *StableMap) *RunContext {

@@ -118,6 +118,18 @@ func (rt *Runtime) Inventory() *inv.Manager {
 	return rt.inventory
 }
 
+func (rt *Runtime) Modules() []*module.Module {
+	return rt.modules.Modules()
+}
+
+func (rt *Runtime) ReadModule(dir string) error {
+	prefix := filepath.Join(rt.opts.dir, "modules")
+	if !strings.HasPrefix(dir, prefix) {
+		return fmt.Errorf("invalid module dir: %s", dir)
+	}
+	return rt.modules.LoadDir(dir)
+}
+
 func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunOption) ([]byte, error) {
 	ech := make(chan error, 1)
 	ch := make(chan []byte, 1)

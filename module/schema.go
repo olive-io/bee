@@ -21,13 +21,13 @@ import (
 )
 
 type Schema struct {
-	Name    string       `yaml:"name"`
-	Type    string       `yaml:"type"`
-	Short   string       `yaml:"short"`
-	Desc    string       `yaml:"desc"`
-	Default string       `yaml:"default"`
-	Example string       `yaml:"example"`
-	Value   *SchemaValue `yaml:"-"`
+	Name    string       `json:"name" yaml:"name"`
+	Type    string       `json:"type" yaml:"type"`
+	Short   string       `json:"short" yaml:"short"`
+	Desc    string       `json:"desc" yaml:"desc"`
+	Default string       `json:"default" yaml:"default"`
+	Example string       `json:"example" yaml:"example"`
+	Value   *SchemaValue `json:"-" yaml:"-"`
 }
 
 func (s *Schema) InitValue() *SchemaValue {

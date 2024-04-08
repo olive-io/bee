@@ -18,15 +18,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/cockroachdb/errors"
+	"go.uber.org/zap"
+
 	"github.com/olive-io/bee/module"
 	"github.com/olive-io/bee/module/hook"
-	"go.uber.org/zap"
 )
 
 type Manager struct {
-	dir     string
+	dir string
+
+	mu      sync.RWMutex
 	modules map[string]*module.Module
 
 	lg *zap.Logger
@@ -59,6 +63,8 @@ func (mg *Manager) RootDir() string {
 }
 
 func (mg *Manager) Modules() []*module.Module {
+	mg.mu.RLock()
+	defer mg.mu.RUnlock()
 	ms := make([]*module.Module, 0)
 	for name, _ := range mg.modules {
 		ms = append(ms, mg.modules[name])
@@ -67,6 +73,8 @@ func (mg *Manager) Modules() []*module.Module {
 }
 
 func (mg *Manager) LoadModule(m *module.Module) {
+	mg.mu.Lock()
+	defer mg.mu.Unlock()
 	mg.modules[m.Name] = m
 }
 
@@ -127,7 +135,9 @@ func (mg *Manager) validDir(dir string) bool {
 
 // Find returns the *Module by name
 func (mg *Manager) Find(name string) (*module.Module, bool) {
+	mg.mu.RLock()
 	m, ok := mg.modules[name]
+	mg.mu.RUnlock()
 	if !ok {
 		if !strings.Contains(name, ".") {
 			name = "bee.builtin." + name
