@@ -12,8 +12,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/muyo/sno v1.2.1
-	github.com/olive-io/bpmn v1.2.0
-	github.com/olive-io/bpmn/schema v1.2.0
+	github.com/olive-io/bpmn v1.3.0
+	github.com/olive-io/bpmn/schema v1.3.0
 	github.com/olive-io/winrm v1.0.1
 	github.com/panjf2000/ants/v2 v2.9.0
 	github.com/pkg/sftp v1.13.6
@@ -34,7 +34,7 @@ require (
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20210404020558-97928f7e12b6 // indirect
-	github.com/ChrisTrenkamp/xsel v0.9.13 // indirect
+	github.com/ChrisTrenkamp/xsel v0.9.15 // indirect
 	github.com/Chronokeeper/anyxml v0.0.0-20160530174208-54457d8e98c6 // indirect
 	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/expr-lang/expr v1.16.1 // indirect
+	github.com/expr-lang/expr v1.16.3 // indirect
 	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/goccmack/goutil v1.2.3 // indirect

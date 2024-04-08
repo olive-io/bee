@@ -25,14 +25,15 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+
 	"github.com/olive-io/bee"
 	pb "github.com/olive-io/bee/api/rpc"
 	inv "github.com/olive-io/bee/inventory"
 	"github.com/olive-io/bee/parser"
 	bs "github.com/olive-io/bee/server/grpc"
 	"github.com/olive-io/bee/vars"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
 )
 
 const hostText = `

@@ -20,10 +20,11 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/olive-io/bee/plugins/callback"
-	"github.com/olive-io/bee/plugins/filter"
 	"github.com/olive-io/bpmn/tracing"
 	"go.uber.org/zap"
+
+	"github.com/olive-io/bee/plugins/callback"
+	"github.com/olive-io/bee/plugins/filter"
 )
 
 var (

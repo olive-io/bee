@@ -22,10 +22,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/hashicorp/go-multierror"
 	json "github.com/json-iterator/go"
-	"github.com/olive-io/bee/plugins/callback"
-	"github.com/olive-io/bee/plugins/filter"
-	"github.com/olive-io/bee/process"
-	"github.com/olive-io/bee/stats"
 	"github.com/olive-io/bpmn/flow"
 	"github.com/olive-io/bpmn/flow_node/activity"
 	"github.com/olive-io/bpmn/flow_node/activity/script"
@@ -35,6 +31,11 @@ import (
 	"github.com/olive-io/bpmn/schema"
 	"github.com/olive-io/bpmn/tracing"
 	"go.uber.org/zap"
+
+	"github.com/olive-io/bee/plugins/callback"
+	"github.com/olive-io/bee/plugins/filter"
+	"github.com/olive-io/bee/process"
+	"github.com/olive-io/bee/stats"
 )
 
 func (rt *Runtime) Play(ctx context.Context, pr *process.Process, opts ...RunOption) error {
