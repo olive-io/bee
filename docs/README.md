@@ -158,3 +158,4 @@ hello.print("tengo's text")
 - [exec](https://github.com/olive-io/bee/blob/main/docs/tengo_exec.md)：支持执行本地命令
 - [flag](https://github.com/olive-io/bee/blob/main/docs/tengo_flag.md)：解析命令行参数
 - [trace](https://github.com/olive-io/bee/blob/main/docs/tengo_trace.md)：记录脚本运行过程中的日志，支持输出到本地日子文件和 webhook
+- [filepath](https://github.com/olive-io/bee/blob/main/docs/tengo_filepath.md)：文件路径库

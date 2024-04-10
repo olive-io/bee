@@ -1,6 +1,6 @@
 # tengo 模块 - "exec"
 
-启动一个新的进程，类型标准库 `exec`
+启动一个新的进程，类似标准库 `exec`
 
 ```golang
 exec := import("exec")

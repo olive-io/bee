@@ -12,8 +12,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/muyo/sno v1.2.1
-	github.com/olive-io/bpmn v1.3.0
-	github.com/olive-io/bpmn/schema v1.3.0
+	github.com/olive-io/bpmn v1.3.3
+	github.com/olive-io/bpmn/schema v1.3.3
 	github.com/olive-io/winrm v1.0.1
 	github.com/panjf2000/ants/v2 v2.9.0
 	github.com/pkg/sftp v1.13.6
@@ -80,7 +80,7 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/tidwall/transform v0.0.0-20201103190739-32f242e2dbde // indirect
 	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect

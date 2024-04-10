@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 
 	"github.com/d5/tengo/v2"
+
 	"github.com/olive-io/bee/tengo/extra"
 )
 
@@ -230,12 +231,12 @@ func rel(args ...tengo.Object) (tengo.Object, error) {
 		}
 	}
 
-	target, ok := tengo.ToString(args[0])
+	target, ok := tengo.ToString(args[1])
 	if !ok {
 		return nil, tengo.ErrInvalidArgumentType{
 			Name:     "targetPath",
 			Expected: "string(compatible)",
-			Found:    args[0].TypeName(),
+			Found:    args[1].TypeName(),
 		}
 	}
 
