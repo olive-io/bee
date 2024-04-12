@@ -88,6 +88,9 @@ func (mg *Manager) LoadDir(dir string) error {
 		if err != nil {
 			return err
 		}
+		if m.Hide {
+			return nil
+		}
 		if hk, ok := hook.Hooks[m.Name]; ok {
 			forCommandHook(&m.Command, hk)
 		}

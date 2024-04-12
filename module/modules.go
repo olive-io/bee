@@ -85,6 +85,9 @@ func readCommand(dir string) (*Command, error) {
 	if err != nil {
 		return nil, err
 	}
+	if c.Alias == "" {
+		c.Alias = c.Name
+	}
 	c.Run = DefaultRunCommand
 
 	if err = validateScript(c, dir); err != nil {

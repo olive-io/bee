@@ -83,6 +83,7 @@ type RunE func(ctx *RunContext, options ...client.ExecOption) ([]byte, error)
 
 type Command struct {
 	Name     string         `json:"name" yaml:"name"`
+	Alias    string         `json:"alias" yaml:"alias"`
 	Long     string         `json:"long" yaml:"long"`
 	Script   string         `json:"script" yaml:"script"`
 	Authors  []string       `json:"authors" yaml:"authors"`
@@ -91,6 +92,8 @@ type Command struct {
 	Params   []*Schema      `json:"params" yaml:"params"`
 	Returns  []*Schema      `json:"returns" yaml:"returns"`
 	Commands []*Command     `json:"commands" yaml:"commands"`
+	Mutable  bool           `json:"mutable" yaml:"mutable"`
+	Hide     bool           `json:"hide" yaml:"hide"`
 	Root     string         `json:"root" yaml:"root"`
 	cobra    *cobra.Command `yaml:"-"`
 
@@ -110,9 +113,7 @@ func (c *Command) NewContext(ctx context.Context, lg *zap.Logger, conn client.IC
 	return rctx
 }
 
-func (c *Command) Runnable() bool {
-	return c.Script != ""
-}
+func (c *Command) Runnable() bool { return c.Script != "" }
 
 func (c *Command) ParseCmd() *cobra.Command {
 	if c.cobra != nil {
@@ -146,9 +147,7 @@ func (c *Command) ParseCmd() *cobra.Command {
 	return cmd
 }
 
-func (c *Command) Flags() *pflag.FlagSet {
-	return c.cobra.PersistentFlags()
-}
+func (c *Command) Flags() *pflag.FlagSet { return c.cobra.PersistentFlags() }
 
 var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([]byte, error) {
 	command := ctx.Cmd
@@ -212,14 +211,17 @@ var DefaultRunCommand RunE = func(ctx *RunContext, opts ...client.ExecOption) ([
 		options = append(options, client.ExecWithEnv(key, value))
 	}
 
-	shell := fmt.Sprintf("%s -import %s %s %s", repl, resolve, script, strings.Join(args, " "))
+	shell := fmt.Sprintf("%s -import %s %s %s",
+		repl, resolve, script, strings.Join(args, " "))
 	start := time.Now()
 	cmd, err := conn.Execute(ctx, repl, options...)
 	if err != nil {
 		return nil, err
 	}
 	data, err := cmd.CombinedOutput()
-	lg.Debug("remote execute", zap.String("command", shell), zap.Duration("took", time.Now().Sub(start)))
+	lg.Debug("remote execute",
+		zap.String("command", shell),
+		zap.Duration("took", time.Now().Sub(start)))
 	if err != nil {
 		return nil, &CommandErr{Err: err, Stderr: beautify(data)}
 	}
