@@ -123,8 +123,8 @@ func validateScript(c *Command, dir string) error {
 }
 
 type Module struct {
-	Command `yaml:",inline"`
-	Dir     string `yaml:"dir"`
+	Command `json:",inline" yaml:",inline"`
+	Dir     string `json:"dir,omitempty" yaml:"dir,omitempty"`
 }
 
 func (m *Module) Execute(args ...string) (*Command, error) {
