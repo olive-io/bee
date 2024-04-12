@@ -82,19 +82,19 @@ type RunContext struct {
 type RunE func(ctx *RunContext, options ...client.ExecOption) ([]byte, error)
 
 type Command struct {
-	Name     string         `json:"name" yaml:"name"`
-	Alias    string         `json:"alias" yaml:"alias"`
-	Long     string         `json:"long" yaml:"long"`
-	Script   string         `json:"script" yaml:"script"`
-	Authors  []string       `json:"authors" yaml:"authors"`
-	Version  string         `json:"version" yaml:"version"`
-	Example  string         `json:"example" yaml:"example"`
-	Params   []*Schema      `json:"params" yaml:"params"`
-	Returns  []*Schema      `json:"returns" yaml:"returns"`
-	Commands []*Command     `json:"commands" yaml:"commands"`
-	Mutable  bool           `json:"mutable" yaml:"mutable"`
-	Hide     bool           `json:"hide" yaml:"hide"`
-	Root     string         `json:"root" yaml:"root"`
+	Name     string         `json:"name,omitempty" yaml:"name,omitempty"`
+	Alias    string         `json:"alias,omitempty" yaml:"alias,omitempty"`
+	Long     string         `json:"long,omitempty" yaml:"long,omitempty"`
+	Script   string         `json:"script,omitempty" yaml:"script,omitempty"`
+	Authors  []string       `json:"authors,omitempty" yaml:"authors,omitempty"`
+	Version  string         `json:"version,omitempty" yaml:"version,omitempty"`
+	Example  string         `json:"example,omitempty" yaml:"example,omitempty"`
+	Params   []*Schema      `json:"params,omitempty" yaml:"params,omitempty"`
+	Returns  []*Schema      `json:"returns,omitempty" yaml:"returns,omitempty"`
+	Commands []*Command     `json:"commands,omitempty" yaml:"commands,omitempty"`
+	Mutable  bool           `json:"mutable,omitempty" yaml:"mutable,omitempty"`
+	Hide     bool           `json:"hide,omitempty" yaml:"hide,omitempty"`
+	Root     string         `json:"root,omitempty" yaml:"root,omitempty"`
 	cobra    *cobra.Command `yaml:"-"`
 
 	PreRun  RunE `json:"-" yaml:"-"`

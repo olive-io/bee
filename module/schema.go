@@ -24,12 +24,12 @@ import (
 )
 
 type Schema struct {
-	Name    string       `json:"name" yaml:"name"`
-	Type    string       `json:"type" yaml:"type"`
-	Short   string       `json:"short" yaml:"short"`
-	Desc    string       `json:"desc" yaml:"desc"`
-	Default string       `json:"default" yaml:"default"`
-	Example string       `json:"example" yaml:"example"`
+	Name    string       `json:"name,omitempty" yaml:"name,omitempty"`
+	Type    string       `json:"type,omitempty" yaml:"type,omitempty"`
+	Short   string       `json:"short,omitempty" yaml:"short,omitempty"`
+	Desc    string       `json:"desc,omitempty" yaml:"desc,omitempty"`
+	Default string       `json:"default,omitempty" yaml:"default,omitempty"`
+	Example string       `json:"example,omitempty" yaml:"example,omitempty"`
 	Value   *SchemaValue `json:"-" yaml:"-"`
 }
 
