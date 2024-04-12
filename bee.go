@@ -137,6 +137,10 @@ func (rt *Runtime) ReadModule(dir string) error {
 	return rt.modules.LoadDir(dir)
 }
 
+func (rt *Runtime) FindModule(name string) (*module.Module, bool) {
+	return rt.modules.Find(name)
+}
+
 func (rt *Runtime) Execute(ctx context.Context, host, shell string, opts ...RunOption) ([]byte, error) {
 	ech := make(chan error, 1)
 	ch := make(chan []byte, 1)
