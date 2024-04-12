@@ -125,6 +125,10 @@ func (rt *Runtime) Modules() []*module.Module {
 	return rt.modules.Modules()
 }
 
+func (rt *Runtime) GetDB() *pebble.DB {
+	return rt.db
+}
+
 func (rt *Runtime) ReadModule(dir string) error {
 	prefix := filepath.Join(rt.opts.dir, "modules")
 	if !strings.HasPrefix(dir, prefix) {
