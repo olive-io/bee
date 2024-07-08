@@ -12,8 +12,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/muyo/sno v1.2.1
-	github.com/olive-io/bpmn v1.3.3
-	github.com/olive-io/bpmn/schema v1.3.3
+	github.com/olive-io/bpmn v1.3.4
+	github.com/olive-io/bpmn/schema v1.3.4
 	github.com/olive-io/winrm v1.0.1
 	github.com/panjf2000/ants/v2 v2.9.0
 	github.com/pkg/sftp v1.13.6

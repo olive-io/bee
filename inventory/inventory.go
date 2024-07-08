@@ -42,16 +42,23 @@ func NewInventoryManager(loader *parser.DataLoader, sources ...string) (*Manager
 		groups:  make(map[string]*parser.Group),
 		hosts:   make(map[string]*parser.Host),
 	}
-	var err error
-	im.groups, err = im.MatchedGroups()
-	if err != nil {
-		return nil, err
-	}
-	im.hosts, err = im.MatchedHosts()
-	if err != nil {
+	if err := im.Sync(); err != nil {
 		return nil, err
 	}
 	return im, nil
+}
+
+func (im *Manager) Sync() error {
+	var err error
+	im.groups, err = im.MatchedGroups()
+	if err != nil {
+		return err
+	}
+	im.hosts, err = im.MatchedHosts()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (im *Manager) AddSources(sources ...string) error {

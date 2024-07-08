@@ -214,6 +214,24 @@ func TestHostExpansionFullNumericPattern(t *testing.T) {
 	}
 }
 
+func TestHostMultiParse(t *testing.T) {
+	v := parseString(t, `
+	host-[001:015:3]-web:23
+	`)
+
+	assert.Contains(t, v.Hosts, "host-001-web")
+
+	for _, host := range v.Hosts {
+		assert.Equalf(t, 23, host.Port, "%s port is set", host.Name)
+	}
+
+	assert.NoError(t, v.ParseString(`
+	host7
+`))
+
+	assert.Contains(t, v.Hosts, "host7")
+}
+
 func TestHostExpansionFullAlphabeticPattern(t *testing.T) {
 	v := parseString(t, `
 	host-[a:o:3]-web

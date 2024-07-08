@@ -34,6 +34,7 @@ func TestRuntime_Play(t *testing.T) {
 
 	ctx := context.TODO()
 	options := make([]bee.RunOption, 0)
+	inventory.Sync()
 	_ = inventory.AddSources(sources...)
 
 	pr := &process.Process{
